@@ -6,7 +6,8 @@ import mplfinance as mpf
 import numpy as np
 import os
 
-TOKEN = "token baru"
+TOKEN = os.getenv("DISCORD_TOKEN")
+bot.run(TOKEN)
 
 intents = discord.Intents.default()
 intents.message_content = True
