@@ -1,26 +1,3 @@
-# --- Keep Alive Server ---
-from flask import Flask
-from threading import Thread
-
-app = Flask('')
-
-
-@app.route('/')
-def home():
-    return "Bot is running!"
-
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
-
-keep_alive()  # Jalankan server keep alive
-
 import discord
 from discord.ext import commands
 import yfinance as yf
@@ -29,7 +6,7 @@ import mplfinance as mpf
 import numpy as np
 import os
 
-TOKEN = "MTQ3NDA1Njc5ODgwMDQ0OTYwNw.Gk9ABK.BhCtH9N_OPdVnKPfe_ePUPcY0Q7blC6gISqP9U"
+TOKEN = "token baru"
 
 intents = discord.Intents.default()
 intents.message_content = True
