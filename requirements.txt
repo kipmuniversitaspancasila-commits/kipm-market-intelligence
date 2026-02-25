@@ -1,6 +1,6 @@
 discord.py
-pandas
-matplotlib
 yfinance
+pandas
 mplfinance
 numpy
+matplotlib
