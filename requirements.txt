@@ -2,5 +2,5 @@ discord.py
 pandas
 matplotlib
 yfinance
+mplfinance
 numpy
-flask
