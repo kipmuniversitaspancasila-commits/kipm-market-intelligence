@@ -7,10 +7,11 @@ import numpy as np
 import os
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-bot.run(TOKEN)
+
 
 intents = discord.Intents.default()
 intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
