@@ -141,10 +141,9 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
                      upper_fvg, sup_zones, res_zones,
                      bias, probability):
 
-    # Cari demand terbaik
     best_demand = max(final_demand_zones, key=lambda z: z["score"], default=None)
 
-    if not best_demand or best_demand["score"] < 3:
+    if not best_demand or best_demand["score"] < 2:
         return (
             "══════════════════\n"
             "🎯 TRADE PLAN\n\n"
@@ -154,27 +153,25 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
             "══════════════════\n"
         )
 
-    entry_low = int(best_demand["low"])
-    entry_high = int(best_demand["high"])
+    entry_low = int(best_demand["low"] // 10 * 10)
+    entry_high = int(best_demand["high"] // 10 * 10)
 
-    # Target 1 = Upper FVG midpoint
+    # Target 1 dari FVG
     if upper_fvg:
         fvg_low, fvg_high = upper_fvg[0]
         target1 = int((fvg_low + fvg_high) / 2)
     else:
         target1 = entry_high + 50
 
-    # Target 2 = resistance terdekat
-    if resistances:
-        target2 = int(resistances[0])
+    # Target 2 dari resistance
+    if res_zones:
+        target2 = int(res_zones[0][0])
     else:
         target2 = target1 + 50
 
-    # Invalidation 2% below zone
     invalidation = int(entry_low * 0.98)
 
-    # Confidence sederhana
-    confidence = min(85, best_demand["score"] * 12)
+    confidence = min(85, best_demand["score"] * 14)
 
     return (
         "══════════════════\n"
@@ -532,19 +529,19 @@ async def chart(ctx, ticker: str):
             f"Bandar 3D\n"
             f"Buy : {format_billions(bandar_3d[0])} / "
             f"Sell : {format_billions(bandar_3d[1])}\n"
-            f"🧭 Net : {format_billions(bandar_3d[2])} ({bandar_3d[4]})\n"
+            f" Net : {format_billions(bandar_3d[2])} ({bandar_3d[4]})\n"
             f"Avg Price : {int(bandar_3d[3])}\n\n"
         
             f"Bandar 1W\n"
             f"Buy : {format_billions(bandar_1w[0])} / "
             f"Sell : {format_billions(bandar_1w[1])}\n"
-            f"🧭 Net : {format_billions(bandar_1w[2])} ({bandar_1w[4]})\n"
+            f" Net : {format_billions(bandar_1w[2])} ({bandar_1w[4]})\n"
             f"Avg Price : {int(bandar_1w[3])}\n\n"
         
             f"Bandar 1M\n"
             f"Buy : {format_billions(bandar_1m[0])} / "
             f"Sell : {format_billions(bandar_1m[1])}\n"
-            f"🧭 Net : {format_billions(bandar_1m[2])} ({bandar_1m[4]})\n"
+            f" Net : {format_billions(bandar_1m[2])} ({bandar_1m[4]})\n"
             f"Avg Price : {int(bandar_1m[3])}\n\n"
         
             "══════════════════\n"
@@ -553,19 +550,19 @@ async def chart(ctx, ticker: str):
             f"Foreign 3D\n"
             f"Buy : {format_billions(foreign_3d[0])} / "
             f"Sell : {format_billions(foreign_3d[1])}\n"
-            f"🧭 Net : {format_billions(foreign_3d[2])} ({foreign_3d[4]})\n"
+            f" Net : {format_billions(foreign_3d[2])} ({foreign_3d[4]})\n"
             f"Avg Price : {int(foreign_3d[3])}\n\n"
         
             f"Foreign 1W\n"
             f"Buy : {format_billions(foreign_1w[0])} / "
             f"Sell : {format_billions(foreign_1w[1])}\n"
-            f"🧭 Net : {format_billions(foreign_1w[2])} ({foreign_1w[4]})\n"
+            f" Net : {format_billions(foreign_1w[2])} ({foreign_1w[4]})\n"
             f"Avg Price : {int(foreign_1w[3])}\n\n"
         
             f"Foreign 1M\n"
             f"Buy : {format_billions(foreign_1m[0])} / "
             f"Sell : {format_billions(foreign_1m[1])}\n"
-            f"🧭 Net : {format_billions(foreign_1m[2])} ({foreign_1m[4]})\n"
+            f" Net : {format_billions(foreign_1m[2])} ({foreign_1m[4]})\n"
             f"Avg Price : {int(foreign_1m[3])}\n"
         )
         # =============================
