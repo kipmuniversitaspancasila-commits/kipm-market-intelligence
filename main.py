@@ -566,7 +566,7 @@ async def chart(ctx, ticker: str):
         # ===============================
         # 1️⃣ DOWNLOAD DATA
         # ===============================
-        df = yf.download(symbol, period="6mo", interval="1d")
+    
     
         if df.empty:
             await ctx.send("Data tidak ditemukan")
