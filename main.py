@@ -68,6 +68,41 @@ def calculate_frequency_series(df, bins=25):
 
     return freq_series
 
+        def score_zone(zone):
+            score = 0
+            
+            if zone["type"] in ["supply", "demand"]:
+                score += 2
+            if zone.get("has_sr", False):
+                score += 2
+            if zone.get("has_fvg", False):
+                score += 1
+            if zone.get("fresh", False):
+                score += 1
+            if zone.get("multi_tf", False):
+                score += 2
+        
+            return score
+
+        def classify_zone(score):
+            if score >= 6:
+                return "🔥 Major Institutional Zone"
+            elif score >= 4:
+                return "⚡ Strong Reaction Zone"
+            elif score >= 2:
+                return "🟡 Moderate Zone"
+            else:
+                return "⚪ Weak Zone"
+
+        def estimate_probability(score):
+            if score >= 6:
+                return "≈ 75% reaction probability"
+            elif score >= 4:
+                return "≈ 60% reaction probability"
+            elif score >= 2:
+                return "≈ 45% reaction probability"
+            else:
+                return "Low probability"
 
 # =========================================
 # MAIN COMMAND
@@ -576,30 +611,6 @@ Avg Price : {foreign_1m[3]:,.0f}
             "══════════════════\n"
         )
 
-        def score_zone(zone):
-            score = 0
-            
-            if zone["type"] in ["supply", "demand"]:
-                score += 2
-            if zone.get("has_sr", False):
-                score += 2
-            if zone.get("has_fvg", False):
-                score += 1
-            if zone.get("fresh", False):
-                score += 1
-            if zone.get("multi_tf", False):
-                score += 2
-        
-            return score
-        
-        
-        def classify_zone(score):
-            if score >= 6:
-                return "🔥 Major Institutional Zone"
-            elif score >= 4:
-                return "⚡ Strong Reaction Zone"
-            else:
-                return "Minor Zone"
 
         def detect_bias(supply_zones, demand_zones, rsi_value):
             supply_score = max([z["score"] for z in supply_zones], default=0)
@@ -624,14 +635,6 @@ Avg Price : {foreign_1m[3]:,.0f}
         
             return "No strong liquidity magnet"
         
-        
-        def estimate_probability(score):
-            if score >= 6:
-                return "≈ 70% reaction probability"
-            elif score >= 4:
-                return "≈ 55% reaction probability"
-            else:
-                return "≈ 40% probability"
                 
         # =============================
         # FINAL CAPTION
