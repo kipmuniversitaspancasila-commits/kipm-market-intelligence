@@ -255,40 +255,54 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     zone_range = entry_high - entry_low
 
     # =================================
-    # TARGET ENGINE (SMART EXPANSION)
+    # TARGET ENGINE SMART
     # =================================
     
     zone_range = entry_high - entry_low
+    risk = entry_high - invalidation
     
-    # Target 1 (minimal institutional move)
-    target1 = entry_high + (zone_range * 3)
+    min_target_distance = risk * 2.5
     
-    # Target 2 (expansion move)
+    target1 = entry_high + max(zone_range * 2, min_target_distance)
+    
+    target2 = entry_high + max(zone_range * 4, risk * 4)
+    
+    # resistance override (hanya jika lebih jauh)
     if res_zones:
         resistance_price = int(res_zones[0][0])
-        target2 = max(target1 + zone_range, resistance_price)
-    else:
-        target2 = entry_high + (zone_range * 6)
+        if resistance_price > target1:
+            target2 = max(target2, resistance_price)
     
-    # FVG override
+    # FVG override (hanya jika jauh)
     if upper_fvg:
         fvg_low, fvg_high = upper_fvg[0]
-        if fvg_low > entry_high:
+        if fvg_low > target1:
             target2 = max(target2, int(fvg_low))
     
     # rounding sesuai fraksi IDX
     target1 = round_up(target1)
     target2 = round_up(target2)
                          
-    # PRIORITY STOPLOSS ENGINE
+
+    # =============================
+    # STOPLOSS ENGINE FIX
+    # =============================
+    
+    valid_support = None
+    
     if sup_zones:
-        # support terdekat di bawah entry
-        support_price = sup_zones[0][0]
-        invalidation = round_down(support_price)
+        for s in sup_zones:
+            support_price = s[0]
+            if support_price < entry_low:
+                valid_support = support_price
+                break
+    
+    if valid_support:
+        invalidation = round_down(valid_support)
     
     else:
         # fallback ke demand low
-        invalidation = round_down(support_price * 0.995)
+        invalidation = round_down(best_demand["low"] * 0.995)
 
     confidence = min(85, best_demand["score"] * 14)
 
