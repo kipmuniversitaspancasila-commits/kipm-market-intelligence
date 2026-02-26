@@ -298,7 +298,8 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     
     # resistance override (hanya jika lebih jauh)
     if res_zones:
-        if res_zones and len(res_zones) > 0:
+        resistance_price = int(res_zones[0][0])
+    
         if resistance_price > target1:
             target2 = max(target2, resistance_price)
     
