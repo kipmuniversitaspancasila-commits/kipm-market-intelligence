@@ -510,48 +510,48 @@ async def chart(ctx, ticker: str):
         # BANDARMOLOGY REPORT TEXT
         # =============================
 
-report = (
-    "══════════════════\n"
-    "📊 BANDARMOLOGY REPORT\n\n"
-
-    f"Bandar 3D\n"
-    f"Buy : {format_billions(bandar3['buy'])} / "
-    f"Sell : {format_billions(bandar3['sell'])}\n"
-    f"🧭 Net : {format_billions(bandar3['net'])} "
-    f"({'Akumulasi' if bandar3['net'] > 0 else 'Distribusi'})\n"
-    f"Avg Price : {int(bandar3['avg_price'])}\n\n"
-
-    f"Bandar 1W\n"
-    f"Buy : {format_billions(bandar1w['buy'])} / "
-    f"Sell : {format_billions(bandar1w['sell'])}\n"
-    f"🧭 Net : {format_billions(bandar1w['net'])} "
-    f"({'Akumulasi' if bandar1w['net'] > 0 else 'Distribusi'})\n"
-    f"Avg Price : {int(bandar1w['avg_price'])}\n\n"
-
-    f"Bandar 1M\n"
-    f"Buy : {format_billions(bandar1m['buy'])} / "
-    f"Sell : {format_billions(bandar1m['sell'])}\n"
-    f"🧭 Net : {format_billions(bandar1m['net'])} "
-    f"({'Akumulasi' if bandar1m['net'] > 0 else 'Distribusi'})\n"
-    f"Avg Price : {int(bandar1m['avg_price'])}\n\n"
-
-    "══════════════════\n"
-    "🌍 FOREIGN FLOW\n\n"
-
-    f"Foreign 3D\n"
-    f"Buy : {format_billions(foreign3['buy'])} / "
-    f"Sell : {format_billions(foreign3['sell'])}\n"
-    f"🧭 Net : {format_billions(foreign3['net'])} "
-    f"({'Akumulasi' if foreign3['net'] > 0 else 'Distribusi'})\n"
-    f"Avg Price : {int(foreign3['avg_price'])}\n\n"
-
-    f"Foreign 1W\n"
-    f"Buy : {format_billions(foreign1w['buy'])} / "
-    f"Sell : {format_billions(foreign1w['sell'])}\n"
-    f"🧭 Net : {format_billions(foreign1w['net'])} "
-    f"({'Akumulasi' if foreign1w['net'] > 0 else 'Distribusi'})\n"
-    f"Avg Price : {int(foreign1w['avg_price'])}\n"
-)
+        report = (
+            "══════════════════\n"
+            "📊 BANDARMOLOGY REPORT\n\n"
+        
+            f"Bandar 3D\n"
+            f"Buy : {format_billions(bandar3['buy'])} / "
+            f"Sell : {format_billions(bandar3['sell'])}\n"
+            f"🧭 Net : {format_billions(bandar3['net'])} "
+            f"({'Akumulasi' if bandar3['net'] > 0 else 'Distribusi'})\n"
+            f"Avg Price : {int(bandar3['avg_price'])}\n\n"
+        
+            f"Bandar 1W\n"
+            f"Buy : {format_billions(bandar1w['buy'])} / "
+            f"Sell : {format_billions(bandar1w['sell'])}\n"
+            f"🧭 Net : {format_billions(bandar1w['net'])} "
+            f"({'Akumulasi' if bandar1w['net'] > 0 else 'Distribusi'})\n"
+            f"Avg Price : {int(bandar1w['avg_price'])}\n\n"
+        
+            f"Bandar 1M\n"
+            f"Buy : {format_billions(bandar1m['buy'])} / "
+            f"Sell : {format_billions(bandar1m['sell'])}\n"
+            f"🧭 Net : {format_billions(bandar1m['net'])} "
+            f"({'Akumulasi' if bandar1m['net'] > 0 else 'Distribusi'})\n"
+            f"Avg Price : {int(bandar1m['avg_price'])}\n\n"
+        
+            "══════════════════\n"
+            "🌍 FOREIGN FLOW\n\n"
+        
+            f"Foreign 3D\n"
+            f"Buy : {format_billions(foreign3['buy'])} / "
+            f"Sell : {format_billions(foreign3['sell'])}\n"
+            f"🧭 Net : {format_billions(foreign3['net'])} "
+            f"({'Akumulasi' if foreign3['net'] > 0 else 'Distribusi'})\n"
+            f"Avg Price : {int(foreign3['avg_price'])}\n\n"
+        
+            f"Foreign 1W\n"
+            f"Buy : {format_billions(foreign1w['buy'])} / "
+            f"Sell : {format_billions(foreign1w['sell'])}\n"
+            f"🧭 Net : {format_billions(foreign1w['net'])} "
+            f"({'Akumulasi' if foreign1w['net'] > 0 else 'Distribusi'})\n"
+            f"Avg Price : {int(foreign1w['avg_price'])}\n"
+        )
 
         # =============================
         # SUPPORT RESISTANCE RESULT
