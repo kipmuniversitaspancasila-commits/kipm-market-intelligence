@@ -316,9 +316,126 @@ async def chart(ctx, ticker: str):
     except Exception as e:
         await ctx.send(f"Terjadi error: {e}")
 
+# =====================================================
+        # ================= FORMAT HELPER =====================
+        # =====================================================
 
-# =========================================================
-# RUN BOT
-# =========================================================
+        def format_value(v):
+            if v >= 1_000_000_000_000:
+                return f"{v/1_000_000_000_000:.2f} T"
+            elif v >= 1_000_000_000:
+                return f"{v/1_000_000_000:.2f} B"
+            elif v >= 1_000_000:
+                return f"{v/1_000_000:.2f} M"
+            else:
+                return f"{v:,.0f}"
 
+        def format_zone(zone):
+            if zone:
+                return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
+            return "N/A"
+
+        def format_simple_zone(zone):
+            if not zone:
+                return "N/A"
+            return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)}"
+
+
+        # =====================================================
+        # ================= ZONE FORMATTING ===================
+        # =====================================================
+
+        resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
+        resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
+
+        support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
+        support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
+
+        supply1 = format_simple_zone(supply_zones[0]) if len(supply_zones) > 0 else "N/A"
+        supply2 = format_simple_zone(supply_zones[1]) if len(supply_zones) > 1 else "N/A"
+
+        demand1 = format_simple_zone(demand_zones[0]) if len(demand_zones) > 0 else "N/A"
+        demand2 = format_simple_zone(demand_zones[1]) if len(demand_zones) > 1 else "N/A"
+
+
+        # =====================================================
+        # ================= FUNDAMENTAL =======================
+        # =====================================================
+
+        stock = yf.Ticker(ticker)
+        info = stock.info
+
+        pbv = info.get("priceToBook", None)
+        equity = info.get("bookValue", None)
+
+        pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
+        equity_text = f"{float(equity):,.2f}" if equity else "N/A"
+
+
+        # =====================================================
+        # ================= BANDAR REPORT =====================
+        # =====================================================
+
+        report = f"""
+        BANDARMOLOGY REPORT — {ticker.replace(".JK","")}
+        
+        3 Hari Terakhir
+        Bandar  : Net {format_value(bandar_3d[2])} ({bandar_3d[4]})
+        Foreign : Net {format_value(foreign_3d[2])} ({foreign_3d[4]})
+        
+        1 Week Terakhir
+        Bandar  : Net {format_value(bandar_1w[2])} ({bandar_1w[4]})
+        Foreign : Net {format_value(foreign_1w[2])} ({foreign_1w[4]})
+        
+        1 Month Terakhir
+        Bandar  : Net {format_value(bandar_1m[2])} ({bandar_1m[4]})
+        Foreign : Net {format_value(foreign_1m[2])} ({foreign_1m[4]})
+        """
+
+
+        # =====================================================
+        # ================= MAIN CAPTION ======================
+        # =====================================================
+
+        rsi_now = float(df["RSI"].iloc[-1])
+        stoch_now = float(k.iloc[-1])
+        last_price_text = f"{current_price:,.0f}"
+
+        caption = (
+            f"💰 Last Price : {last_price_text}\n\n"
+            f"🟢 R1 : {resistance1}\n"
+            f"🟢 R2 : {resistance2}\n\n"
+            f"🔴 S1 : {support1}\n"
+            f"🔴 S2 : {support2}\n\n"
+            f"🟣 Supply 1 : {supply1}\n"
+            f"🟣 Supply 2 : {supply2}\n\n"
+            f"🔵 Demand 1 : {demand1}\n"
+            f"🔵 Demand 2 : {demand2}\n\n"
+            f"📈 RSI : {rsi_now:.2f}\n"
+            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
+            f"📚 PBV : {pbv_text}\n"
+            f"🏛️ Equity / Share : {equity_text}\n\n"
+            "#DYOR\n"
+            "#DisclaimerOn\n"
+            "by @marketnmocha"
+        )
+
+
+        # =====================================================
+        # ================= SEND MESSAGE ======================
+        # =====================================================
+
+        file = discord.File(file_path)
+
+        # Kirim gambar + caption utama
+        await ctx.send(file=file, content=caption)
+
+        # Kirim bandarmology terpisah supaya tidak kena limit 2000 karakter
+        await ctx.send(report)
+
+        # Hapus file setelah kirim
+        os.remove(file_path)
+
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
 bot.run(TOKEN)
