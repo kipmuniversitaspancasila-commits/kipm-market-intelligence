@@ -8,7 +8,6 @@ import os
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -74,25 +73,20 @@ def round_level(value):
 
 
 # =============================
-# FREQUENCY ANALYZER (PRICE DISTRIBUTION)
+# FREQUENCY ANALYZER
 # =============================
 def calculate_frequency_series(df, bins=25):
 
     df = df.copy()
-
-    # Typical price
     df["Typical"] = (df["High"] + df["Low"] + df["Close"]) / 3
 
     prices = df["Typical"].values
     volumes = df["Volume"].values
 
-    # Histogram berbobot volume
     hist, bin_edges = np.histogram(prices, bins=bins, weights=volumes)
 
-    # Buat series kosong sepanjang df
     freq_series = pd.Series(0.0, index=df.index)
 
-    # Masukkan volume weight ke index terdekat
     for i in range(len(hist)):
         if hist[i] > 0:
             mid_price = (bin_edges[i] + bin_edges[i + 1]) / 2
@@ -106,12 +100,6 @@ def calculate_frequency_series(df, bins=25):
 async def chart(ctx, ticker: str):
 
     try:
-        import yfinance as yf
-        import mplfinance as mpf
-        import pandas as pd
-        import numpy as np
-        import discord
-
         ticker = ticker.upper()
         if ".JK" not in ticker:
             ticker += ".JK"
@@ -125,29 +113,18 @@ async def chart(ctx, ticker: str):
 
         df_full.dropna(inplace=True)
 
-        # === DATA UNTUK CHART (2 TAHUN) ===
         df = df_full.tail(500).copy()
 
         last_price = df["Close"].iloc[-1]
         last_price_text = f"{float(last_price):,.0f}"
 
-        # =========================
-        # FREQUENCY SERIES
-        # =========================
-
-        def filter_relevant_levels(levels,
-                                   current_price,
-                                   max_distance_percent=60):
+        def filter_relevant_levels(levels, current_price, max_distance_percent=60):
             filtered = []
             for lvl in levels:
                 dist = abs(lvl - current_price) / current_price * 100
                 if dist <= max_distance_percent:
                     filtered.append(lvl)
             return filtered
-
-    # =========================
-    # SWING HIGH & LOW
-    # =========================
 
         window = 5
         swing_highs = []
@@ -176,9 +153,8 @@ async def chart(ctx, ticker: str):
             bins = 30
 
         freq_series = calculate_frequency_series(df, bins=bins)
-        # =========================
+
         # RSI
-        # =========================
         delta = df["Close"].diff()
         gain = delta.clip(lower=0)
         loss = -delta.clip(upper=0)
@@ -188,80 +164,38 @@ async def chart(ctx, ticker: str):
         df["RSI"] = 100 - (100 / (1 + rs))
         rsi_now = float(df["RSI"].iloc[-1])
 
-        # =========================
-        # STOCHASTIC 8,3,3
-        # =========================
+        # STOCH
         low_min = df["Low"].rolling(8).min()
         high_max = df["High"].rolling(8).max()
         stoch_k = 100 * ((df["Close"] - low_min) / (high_max - low_min))
         stoch_d = stoch_k.rolling(3).mean()
         stoch_now = float(stoch_k.iloc[-1])
 
-        # =========================
-        # SUPPORT RESIST REALISTIC SWING FILTERED
-        # =========================
-
-        current_price = float(df["Close"].iloc[-1])
-
-        window = 5
-        swing_highs = []
-        swing_lows = []
-
-        for i in range(window, len(df) - window):
-            high_slice = df["High"].iloc[i - window:i + window]
-            low_slice = df["Low"].iloc[i - window:i + window]
-
-            if df["High"].iloc[i] == high_slice.max():
-                swing_highs.append(float(df["High"].iloc[i]))
-
-            if df["Low"].iloc[i] == low_slice.min():
-                swing_lows.append(float(df["Low"].iloc[i]))
-
-        # =========================
-        # FILTER NOISE (hapus level terlalu dekat)
-        # =========================
-
+        # SUPPORT RESIST
         def filter_levels(levels, min_gap_percent=3):
             filtered = []
             for level in sorted(levels):
                 if not filtered:
                     filtered.append(level)
                 else:
-                    if abs(level - filtered[-1]
-                           ) / filtered[-1] * 100 > min_gap_percent:
+                    if abs(level - filtered[-1]) / filtered[-1] * 100 > min_gap_percent:
                         filtered.append(level)
             return filtered
 
         swing_highs = filter_levels(swing_highs)
         swing_lows = filter_levels(swing_lows)
 
-        # =========================
-        # PILIH SUPPORT & RESIST
-        # =========================
-
-        supports = sorted([l for l in swing_lows if l < current_price],
-                          reverse=True)
+        supports = sorted([l for l in swing_lows if l < current_price], reverse=True)
         resistances = sorted([h for h in swing_highs if h > current_price])
 
-        # Pastikan tidak terlalu dekat dengan harga (<2%)
-        supports = [
-            s for s in supports
-            if (current_price - s) / current_price * 100 > 2
-        ]
-        resistances = [
-            r for r in resistances
-            if (r - current_price) / current_price * 100 > 2
-        ]
+        supports = [s for s in supports if (current_price - s) / current_price * 100 > 2]
+        resistances = [r for r in resistances if (r - current_price) / current_price * 100 > 2]
 
         support1 = supports[0] if len(supports) > 0 else None
         support2 = supports[1] if len(supports) > 1 else None
 
         resistance1 = resistances[0] if len(resistances) > 0 else None
         resistance2 = resistances[1] if len(resistances) > 1 else None
-
-        # =========================
-        # PEMBULATAN TANPA DESIMAL
-        # =========================
 
         def clean_round(x):
             if x is None:
@@ -273,46 +207,34 @@ async def chart(ctx, ticker: str):
         resistance1 = clean_round(resistance1)
         resistance2 = clean_round(resistance2)
 
-        # =========================
         # FUNDAMENTAL
-        # =========================
-
         stock = yf.Ticker(ticker)
         info = stock.info
 
         pbv = info.get("priceToBook", None)
         equity = info.get("bookValue", None)
 
-        if pbv is not None and not pd.isna(pbv):
-            pbv_text = f"{float(pbv):.2f}"
-        else:
-            pbv_text = "N/A"
+        pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
+        equity_text = f"{float(equity):.2f}" if equity else "N/A"
 
-        if equity is not None and not pd.isna(equity):
-            equity_text = f"{float(equity):.2f}"
-        else:
-            equity_text = "N/A"
-
-        # =========================
-        # BANDARMOLOGY ENGINE
-        # =========================
+        # =============================
+        # BANDARMOLOGY ENGINE (FIX)
+        # =============================
         def bandarmology_period(data):
-        
+
             buy_value = (data["Close"] * data["Volume"]).sum()
-            sell_value = buy_value * 0.5  # sementara estimasi (karena data broker real tidak ada di yfinance)
-        
+            sell_value = buy_value * 0.5
             net = buy_value - sell_value
-        
+
             if net > 0:
                 status = "Akumulasi"
             else:
                 status = "Distribusi"
-        
+
             avg_price = buy_value / data["Volume"].sum()
-        
+
             return buy_value, sell_value, net, avg_price, status
-        
-        
+
         def format_value(v):
             if v >= 1_000_000_000_000:
                 return f"{v/1_000_000_000_000:.2f} T"
@@ -322,100 +244,68 @@ async def chart(ctx, ticker: str):
                 return f"{v/1_000_000:.2f} M"
             else:
                 return f"{v:.0f}"
-            bandar3 = bandarmology_period(df.tail(3))
-            bandar1m = bandarmology_period(df.tail(22))
-            bandar3m = bandarmology_period(df.tail(66))
 
-        # =========================
-        # STYLE (NO GRID FIXED)
-        # =========================
-        mc = mpf.make_marketcolors(up="#3a7bd5",
-                                   down="white",
-                                   edge="inherit",
-                                   wick="inherit",
-                                   volume="inherit")
+        # INI YANG TADI ERROR
+        bandar3 = bandarmology_period(df.tail(3))
+        bandar1m = bandarmology_period(df.tail(22))
+        bandar3m = bandarmology_period(df.tail(66))
 
-        style = mpf.make_mpf_style(base_mpf_style="default",
-                                   marketcolors=mc,
-                                   facecolor="#0f1116",
-                                   figcolor="#0f1116",
-                                   gridstyle="",
-                                   y_on_right=True,
-                                   rc={
-                                       "xtick.color": "white",
-                                       "ytick.color": "white",
-                                       "axes.labelcolor": "white",
-                                       "axes.edgecolor": "white",
-                                       "text.color": "white"
-                                   })
+        # STYLE
+        mc = mpf.make_marketcolors(up="#3a7bd5", down="white", edge="inherit", wick="inherit", volume="inherit")
 
-        # =========================
-        # RSI PANEL
-        # =========================
+        style = mpf.make_mpf_style(
+            base_mpf_style="default",
+            marketcolors=mc,
+            facecolor="#0f1116",
+            figcolor="#0f1116",
+            gridstyle="",
+            y_on_right=True
+        )
+
         apds = [
             mpf.make_addplot(freq_series, panel=2, type='line', width=1.5),
             mpf.make_addplot(df["RSI"], panel=3, width=1)
         ]
 
         file_path = f"{ticker}_chart.png"
-        # =========================
-        # FREQUENCY PANEL DATA
-        # =========================
 
-        # selalu inisialisasi dulu
-        freq_series = pd.Series(0, index=df.index)
+        fig, axes = mpf.plot(
+            df,
+            type="candle",
+            style=style,
+            volume=True,
+            addplot=apds,
+            panel_ratios=(3, 1, 1, 1),
+            figsize=(14, 8),
+            returnfig=True
+        )
 
-        fig, axes = mpf.plot(df,
-                             type="candle",
-                             style=style,
-                             volume=True,
-                             addplot=apds,
-                             panel_ratios=(3, 1, 1, 1),
-                             figsize=(14, 8),
-                             returnfig=True)
-
-        max_idx = freq_series.idxmax()
-        max_price = df.loc[max_idx, "Close"]
-
-        fig.text(0.89,
-                 0.87,
-                 "@marketnmocha",
-                 ha='right',
-                 va='top',
-                 fontsize=12,
-                 alpha=0.6)
-        # Hapus grid manual
         for ax in axes:
             ax.grid(False)
             ax.yaxis.tick_right()
-            ax.yaxis.set_label_position("right")
 
         fig.savefig(file_path)
 
-        freq_text = ""
-        rank = 1
-
-        # =========================
-        # CAPTION
-        # =========================
-        caption = (f"💰 Last Price : {last_price_text}\n\n"
-                   f"🟢 R1 : {resistance1}\n"
-                   f"🟢 R2 : {resistance2}\n\n"
-                   f"🔴 S1 : {support1}\n"
-                   f"🔴 S2 : {support2}\n\n"
-                   f"📈 RSI : {rsi_now:.2f}\n"
-                   f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
-                   f"📚 PBV : {pbv_text}\n"
-                   f"🏛️ Equity / Share : {equity_text}\n\n"
-                   f"🏦 Bandarmology\n"
-                   f"3 Hari Terakhir\n"
-                   f"Buy : {format_value(bandar3[0])}\n"
-                   f"Sell: {format_value(bandar3[1])}\n"
-                   f"Net : {format_value(bandar3[2])} ({bandar3[4]})\n"
-                   f"Avg : {bandar3[3]:.0f}\n\n"
-                   "#DYOR\n"
-                   "#DisclaimerOn\n"
-                   "by @marketnmocha")
+        caption = (
+            f"💰 Last Price : {last_price_text}\n\n"
+            f"🟢 R1 : {resistance1}\n"
+            f"🟢 R2 : {resistance2}\n\n"
+            f"🔴 S1 : {support1}\n"
+            f"🔴 S2 : {support2}\n\n"
+            f"📈 RSI : {rsi_now:.2f}\n"
+            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
+            f"📚 PBV : {pbv_text}\n"
+            f"🏛️ Equity / Share : {equity_text}\n\n"
+            f"🏦 Bandarmology\n"
+            f"3 Hari Terakhir\n"
+            f"Buy : {format_value(bandar3[0])}\n"
+            f"Sell: {format_value(bandar3[1])}\n"
+            f"Net : {format_value(bandar3[2])} ({bandar3[4]})\n"
+            f"Avg : {bandar3[3]:.0f}\n\n"
+            "#DYOR\n"
+            "#DisclaimerOn\n"
+            "by @marketnmocha"
+        )
 
         file = discord.File(file_path)
         await ctx.send(file=file, content=caption)
