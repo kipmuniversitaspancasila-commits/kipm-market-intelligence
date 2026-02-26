@@ -88,7 +88,9 @@ async def chart(ctx, ticker: str):
         df = df_full.tail(500).copy()
 
         last_price = df["Close"].iloc[-1]
+        current_price = float(last_price)
         last_price_text = f"{float(last_price):,.0f}"
+        
 
         # =========================
         # FREQUENCY
@@ -193,8 +195,9 @@ async def chart(ctx, ticker: str):
         pbv = info.get("priceToBook", None)
         equity = info.get("bookValue", None)
 
-        pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
-        equity_text = f"{float(equity):.2f}" if equity else "N/A"
+        pbv_text = f"{float(pbv):.2f}" if pbv is not None else "N/A"
+        equity_text = f"{float(equity):.2f}" if equity is not None else "N/A"
+   
 
         # =====================================================
         # BANDARMOLOGY ENGINE (INI YANG DIPERBAIKI & DITAMBAHKAN)
@@ -297,62 +300,62 @@ async def chart(ctx, ticker: str):
         # =============================
         report = f"""
 
-BANDARMOLOGY REPORT — {ticker.replace(".JK","")}
-
-3 Hari Terakhir
-
-Bandar
-Buy : {format_value(bandar_3d[0])}
-Sell : {format_value(bandar_3d[1])}
-Net : {format_value(bandar_3d[2])} ({bandar_3d[4]})
-Avg Price : {bandar_3d[3]:,.0f}
-
-Foreign
-Buy : {format_value(foreign_3d[0])}
-Sell : {format_value(foreign_3d[1])}
-Net : {format_value(foreign_3d[2])} ({foreign_3d[4]})
-Avg Price : {foreign_3d[3]:,.0f}
-
-1 Week Terakhir
-
-Bandar
-Buy : {format_value(bandar_1w[0])}
-Sell : {format_value(bandar_1w[1])}
-Net : {format_value(bandar_1w[2])} ({bandar_1w[4]})
-Avg Price : {bandar_1w[3]:,.0f}
-
-Foreign
-Buy : {format_value(foreign_1w[0])}
-Sell : {format_value(foreign_1w[1])}
-Net : {format_value(foreign_1w[2])} ({foreign_1w[4]})
-Avg Price : {foreign_1w[3]:,.0f}
-
-1 Month Terakhir
-
-Bandar
-Buy : {format_value(bandar_1m[0])}
-Sell : {format_value(bandar_1m[1])}
-Net : {format_value(bandar_1m[2])} ({bandar_1m[4]})
-Avg Price : {bandar_1m[3]:,.0f}
-
-Foreign
-Buy : {format_value(foreign_1m[0])}
-Sell : {format_value(foreign_1m[1])}
-Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
-Avg Price : {foreign_1m[3]:,.0f}
-"""
-res_zones, sup_zones = calculate_sr_zones(df, current_price)
-
-def format_zone(zone):
-    if zone:
-        return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
-    return "N/A"
-
-resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
-resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
-
-support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
-support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
+        BANDARMOLOGY REPORT — {ticker.replace(".JK","")}
+        
+        3 Hari Terakhir
+        
+        Bandar
+        Buy : {format_value(bandar_3d[0])}
+        Sell : {format_value(bandar_3d[1])}
+        Net : {format_value(bandar_3d[2])} ({bandar_3d[4]})
+        Avg Price : {bandar_3d[3]:,.0f}
+        
+        Foreign
+        Buy : {format_value(foreign_3d[0])}
+        Sell : {format_value(foreign_3d[1])}
+        Net : {format_value(foreign_3d[2])} ({foreign_3d[4]})
+        Avg Price : {foreign_3d[3]:,.0f}
+        
+        1 Week Terakhir
+        
+        Bandar
+        Buy : {format_value(bandar_1w[0])}
+        Sell : {format_value(bandar_1w[1])}
+        Net : {format_value(bandar_1w[2])} ({bandar_1w[4]})
+        Avg Price : {bandar_1w[3]:,.0f}
+        
+        Foreign
+        Buy : {format_value(foreign_1w[0])}
+        Sell : {format_value(foreign_1w[1])}
+        Net : {format_value(foreign_1w[2])} ({foreign_1w[4]})
+        Avg Price : {foreign_1w[3]:,.0f}
+        
+        1 Month Terakhir
+        
+        Bandar
+        Buy : {format_value(bandar_1m[0])}
+        Sell : {format_value(bandar_1m[1])}
+        Net : {format_value(bandar_1m[2])} ({bandar_1m[4]})
+        Avg Price : {bandar_1m[3]:,.0f}
+        
+        Foreign
+        Buy : {format_value(foreign_1m[0])}
+        Sell : {format_value(foreign_1m[1])}
+        Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
+        Avg Price : {foreign_1m[3]:,.0f}
+        """
+        res_zones, sup_zones = calculate_sr_zones(df, current_price)
+        
+        def format_zone(zone):
+            if zone:
+                return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
+            return "N/A"
+        
+        resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
+        resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
+        
+        support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
+        support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
             f"🟢 R1 : {resistance1}\n"
