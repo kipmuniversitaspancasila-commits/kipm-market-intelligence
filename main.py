@@ -222,6 +222,46 @@ async def chart(ctx, ticker: str):
 
             return supply_zones[:2], demand_zones[:2]
 
+
+        # =========================================
+        # FAIR VALUE GAP ENGINE
+        # =========================================
+        def calculate_fvg(df, current_price):
+        
+            bullish_fvg = []
+            bearish_fvg = []
+        
+            for i in range(2, len(df)):
+                c1 = df.iloc[i-2]
+                c2 = df.iloc[i-1]
+                c3 = df.iloc[i]
+        
+                # Bullish FVG (imbalance bawah → target retrace)
+                if c1["High"] < c3["Low"]:
+                    lower = c1["High"]
+                    upper = c3["Low"]
+                    bullish_fvg.append((lower, upper))
+        
+                # Bearish FVG (imbalance atas → target retrace)
+                if c1["Low"] > c3["High"]:
+                    lower = c3["High"]
+                    upper = c1["Low"]
+                    bearish_fvg.append((lower, upper))
+        
+            # Filter relatif terhadap current price
+            upper_fvg = sorted(
+                [z for z in bearish_fvg if z[0] > current_price],
+                key=lambda x: x[0]
+            )
+        
+            lower_fvg = sorted(
+                [z for z in bullish_fvg if z[1] < current_price],
+                key=lambda x: x[1],
+                reverse=True
+            )
+        
+            return upper_fvg[:2], lower_fvg[:2]
+
         # =========================================
         # FUNDAMENTAL
         # =========================================
@@ -380,6 +420,7 @@ Avg Price : {foreign_1m[3]:,.0f}
 
         res_zones, sup_zones = calculate_sr_zones(df, current_price)
         supply_zones, demand_zones = calculate_supply_demand(df, current_price)
+        upper_fvg, lower_fvg = calculate_fvg(df, current_price)
 
         def format_zone(zone):
             if zone:
@@ -404,6 +445,17 @@ Avg Price : {foreign_1m[3]:,.0f}
         demand1 = format_simple_zone(demand_zones[0]) if len(demand_zones)>0 else "N/A"
         demand2 = format_simple_zone(demand_zones[1]) if len(demand_zones)>1 else "N/A"
 
+        def format_fvg(zone):
+            if not zone:
+                return "N/A"
+            return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)}"
+        
+        upper_fvg1 = format_fvg(upper_fvg[0]) if len(upper_fvg)>0 else "N/A"
+        upper_fvg2 = format_fvg(upper_fvg[1]) if len(upper_fvg)>1 else "N/A"
+        
+        lower_fvg1 = format_fvg(lower_fvg[0]) if len(lower_fvg)>0 else "N/A"
+        lower_fvg2 = format_fvg(lower_fvg[1]) if len(lower_fvg)>1 else "N/A"
+
         # =============================
         # FINAL CAPTION
         # =============================
@@ -421,6 +473,14 @@ Avg Price : {foreign_1m[3]:,.0f}
         
             f"📥 Demand 1 : {demand1}\n"
             f"📥 Demand 2 : {demand2}\n\n"
+        
+            f"🎯 Upside Target (FVG)\n"
+            f"Upper FVG 1 : {upper_fvg1}\n"
+            f"Upper FVG 2 : {upper_fvg2}\n\n"
+        
+            f"🎯 Downside Target (FVG)\n"
+            f"Lower FVG 1 : {lower_fvg1}\n"
+            f"Lower FVG 2 : {lower_fvg2}\n\n"
         
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
@@ -441,4 +501,3 @@ Avg Price : {foreign_1m[3]:,.0f}
         await ctx.send(f"❌ Error: {e}")
 
 bot.run(TOKEN)
-
