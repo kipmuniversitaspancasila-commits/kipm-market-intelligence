@@ -262,6 +262,9 @@ async def chart(ctx, ticker: str):
         
             return upper_fvg[:2], lower_fvg[:2]
 
+
+
+    
         # =========================================
         # FUNDAMENTAL
         # =========================================
@@ -455,6 +458,102 @@ Avg Price : {foreign_1m[3]:,.0f}
         
         lower_fvg1 = format_fvg(lower_fvg[0]) if len(lower_fvg)>0 else "N/A"
         lower_fvg2 = format_fvg(lower_fvg[1]) if len(lower_fvg)>1 else "N/A"
+
+        # =========================================
+        # SUPPLY & DEMAND MERGE ENGINE
+        # =========================================
+        
+        # Merge raw supply & demand zones
+        merged_supply = merge_zones(supply_zones)
+        merged_demand = merge_zones(demand_zones)
+
+
+        # =========================================
+        # ZONE SCORING ENGINE
+        # =========================================
+        
+        final_supply_zones = []
+        final_demand_zones = []
+
+        # Build & score supply zones
+        for low, high in merged_supply:
+            zone = {
+                "low": low,
+                "high": high,
+                "type": "supply",
+                "has_sr": False,
+                "has_fvg": False,
+                "fresh": True,
+                "multi_tf": False
+            }
+
+            zone["score"] = score_zone(zone)
+            zone["label"] = classify_zone(zone["score"])
+            final_supply_zones.append(zone)
+
+        # Build & score demand zones
+        for low, high in merged_demand:
+            zone = {
+                "low": low,
+                "high": high,
+                "type": "demand",
+                "has_sr": False,
+                "has_fvg": False,
+                "fresh": True,
+                "multi_tf": False
+            }
+
+            zone["score"] = score_zone(zone)
+            zone["label"] = classify_zone(zone["score"])
+            final_demand_zones.append(zone)
+
+
+        # =========================================
+        # MARKET BIAS & PROBABILITY ENGINE
+        # =========================================
+        
+        bias = detect_bias(final_supply_zones, final_demand_zones, rsi_now)
+
+        best_zone_score = max(
+            [z["score"] for z in final_supply_zones + final_demand_zones],
+            default=0
+        )
+
+        probability = estimate_probability(best_zone_score)
+
+        magnet = liquidity_magnet(
+            float(last_price_text.replace(",", "")),
+            upper_fvg1_tuple,
+            lower_fvg1_tuple
+        )
+
+
+        # =========================================
+        # CONFLUENCE SUMMARY BUILDER
+        # =========================================
+        
+        summary_text = "\n══════════════════\n🎯 CONFLUENCE SUMMARY\n\n"
+
+        for zone in final_supply_zones:
+            summary_text += (
+                f"📦 {zone['low']} - {zone['high']} "
+                f"(Score: {zone['score']})\n"
+                f"{zone['label']}\n\n"
+            )
+
+        for zone in final_demand_zones:
+            summary_text += (
+                f"📥 {zone['low']} - {zone['high']} "
+                f"(Score: {zone['score']})\n"
+                f"{zone['label']}\n\n"
+            )
+
+        summary_text += (
+            f"🧭 Market Bias : {bias}\n"
+            f"{magnet}\n"
+            f"📊 Estimated Reaction Probability : {probability}\n"
+            "══════════════════\n"
+        )
 
         # =============================
         # FINAL CAPTION
