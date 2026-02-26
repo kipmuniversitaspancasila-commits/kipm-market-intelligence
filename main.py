@@ -213,31 +213,60 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
                      upper_fvg, sup_zones, res_zones,
                      bias, probability):
 
-    if not final_demand_zones:
-        return "No demand zone available"
+    best_demand = max(final_demand_zones, key=lambda z: z["score"], default=None)
 
-    best = max(final_demand_zones, key=lambda x: x["score"])
+    if not best_demand or best_demand["score"] < 2:
+        return (
+            "══════════════════\n"
+            "🎯 TRADE PLAN\n\n"
+            "Bias : ⚖️ Neutral / Wait Confirmation\n"
+            "Confidence : Low\n\n"
+            "No high-quality zone detected.\n"
+            "══════════════════\n"
+        )
 
-    entry_low = int(best["low"] // 10 * 10)
-    entry_high = int(best["high"] // 10 * 10)
+    entry_low = int(best_demand["low"] // 10 * 10)
+    entry_high = int(best_demand["high"] // 10 * 10)
 
-    if upper_fvg:
-        target = int((upper_fvg[0][0] + upper_fvg[0][1]) / 2)
+    zone_range = entry_high - entry_low
+
+    # =================================
+    # TARGET ENGINE (UPGRADE)
+    # =================================
+
+    # Target 1 = minimal 2x zone range
+    target1 = entry_high + (zone_range * 2)
+
+    # Target 2 = nearest resistance jika ada
+    if res_zones:
+        resistance_price = int(res_zones[0][0])
+        target2 = max(target1, resistance_price)
     else:
-        target = entry_high + 60
+        target2 = entry_high + (zone_range * 4)
 
-    invalid = int(entry_low * 0.97)
+    # Jika ada FVG lebih tinggi, override
+    if upper_fvg:
+        fvg_low, fvg_high = upper_fvg[0]
+        if fvg_low > entry_high:
+            target2 = max(target2, int(fvg_low))
 
-    confidence = min(90, best["score"] * 11)
+    # =================================
+    # INVALIDATION
+    # =================================
+
+    invalidation = int(entry_low * 0.97)
+
+    confidence = min(85, best_demand["score"] * 14)
 
     return (
         "══════════════════\n"
         "🎯 TRADE PLAN\n\n"
         f"Bias : {bias}\n"
         f"Confidence : {confidence}%\n\n"
-        f"Entry : {entry_low} - {entry_high}\n"
-        f"Target : {target}\n"
-        f"Invalidation : {invalid}\n"
+        f"📌 Entry : {entry_low} - {entry_high}\n"
+        f"🎯 Target 1 : {int(target1)}\n"
+        f"🎯 Target 2 : {int(target2)}\n"
+        f"🛑 Invalidation : {invalidation}\n"
         "══════════════════\n"
     )
 # =========================================
