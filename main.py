@@ -185,6 +185,49 @@ async def chart(ctx, ticker: str):
             )
         
             return resistance_zones[:2], support_zones[:2]
+            
+            # =========================
+            # SUPPLY DEMAND ENGINE
+            # =========================
+            def calculate_supply_demand(df, current_price, impulse_threshold=0.03):
+            
+                supply_zones = []
+                demand_zones = []
+            
+                for i in range(2, len(df)-3):
+            
+                    base_candle = df.iloc[i]
+                    future = df.iloc[i+1:i+4]
+            
+                    # Calculate impulse %
+                    up_move = (future["High"].max() - base_candle["Close"]) / base_candle["Close"]
+                    down_move = (base_candle["Close"] - future["Low"].min()) / base_candle["Close"]
+            
+                    # Demand Zone (bullish impulse)
+                    if up_move >= impulse_threshold:
+                        lower = base_candle["Low"]
+                        upper = base_candle["Open"]
+                        demand_zones.append((lower, upper))
+            
+                    # Supply Zone (bearish impulse)
+                    if down_move >= impulse_threshold:
+                        lower = base_candle["Open"]
+                        upper = base_candle["High"]
+                        supply_zones.append((lower, upper))
+            
+                # Sort zones
+                supply_zones = sorted(
+                    [z for z in supply_zones if z[0] > current_price],
+                    key=lambda x: x[0]
+                )
+            
+                demand_zones = sorted(
+                    [z for z in demand_zones if z[1] < current_price],
+                    key=lambda x: x[1],
+                    reverse=True
+                )
+            
+                return supply_zones[:2], demand_zones[:2]
 
         # =============================
         # FUNDAMENTAL
@@ -344,6 +387,7 @@ async def chart(ctx, ticker: str):
         Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
         Avg Price : {foreign_1m[3]:,.0f}
         """
+      
         res_zones, sup_zones = calculate_sr_zones(df, current_price)
         
         def format_zone(zone):
@@ -356,12 +400,30 @@ async def chart(ctx, ticker: str):
         
         support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
         support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
+
+        supply_zones, demand_zones = calculate_supply_demand(df, current_price)
+        
+        def format_simple_zone(zone):
+            if not zone:
+                return "N/A"
+            return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)}"
+            
+        supply1 = format_simple_zone(supply_zones[0]) if len(supply_zones)>0 else "N/A"
+        supply2 = format_simple_zone(supply_zones[1]) if len(supply_zones)>1 else "N/A"
+        
+        demand1 = format_simple_zone(demand_zones[0]) if len(demand_zones)>0 else "N/A"
+        demand2 = format_simple_zone(demand_zones[1]) if len(demand_zones)>1 else "N/A"
+        
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
-            f"🟢 R1 : {resistance1}\n"
-            f"🟢 R2 : {resistance2}\n\n"
-            f"🔴 S1 : {support1}\n"
-            f"🔴 S2 : {support2}\n\n"
+            f"🟢 Resist 1 : {resistance1}\n"
+            f"🟢 Resist 2 : {resistance2}\n\n"
+            f"🔴 Ssupport 1 : {support1}\n"
+            f"🔴 Ssupport 2 : {support2}\n\n"
+            f"📦 Supply 1 : {supply1}\n"
+            f"📦 Supply 2 : {supply2}\n\n"
+            f"📥 Demand 1 : {demand1}\n"
+            f"📥 Demand 2 : {demand2}\n\n"
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
             f"📚 PBV : {pbv_text}\n"
