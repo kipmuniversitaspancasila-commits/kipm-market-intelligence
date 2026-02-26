@@ -205,7 +205,31 @@ def merge_zones(zones):
     merged.append((current_low, current_high))
     return merged
 
+# ===============================
+# PRICE FRACTION ENGINE (IDX)
+# ===============================
+def get_tick_size(price):
 
+    if price < 200:
+        return 1
+    elif price < 500:
+        return 2
+    elif price < 2000:
+        return 5
+    elif price < 5000:
+        return 10
+    else:
+        return 25
+
+
+def round_down(price):
+    tick = get_tick_size(price)
+    return int(price // tick * tick)
+
+
+def round_up(price):
+    tick = get_tick_size(price)
+    return int((price + tick - 1) // tick * tick)
 # ===============================
 # TRADE PLAN BUILDER
 # ===============================
@@ -231,25 +255,30 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     zone_range = entry_high - entry_low
 
     # =================================
-    # TARGET ENGINE (UPGRADE)
+    # TARGET ENGINE (SMART EXPANSION)
     # =================================
-
-    # Target 1 = minimal 2x zone range
-    target1 = entry_high + (zone_range * 2)
-
-    # Target 2 = nearest resistance jika ada
+    
+    zone_range = entry_high - entry_low
+    
+    # Target 1 (minimal institutional move)
+    target1 = entry_high + (zone_range * 3)
+    
+    # Target 2 (expansion move)
     if res_zones:
         resistance_price = int(res_zones[0][0])
         target2 = max(target1, resistance_price)
     else:
-        target2 = entry_high + (zone_range * 4)
-
-    # Jika ada FVG lebih tinggi, override
+        target2 = entry_high + (zone_range * 6)
+    
+    # FVG override
     if upper_fvg:
         fvg_low, fvg_high = upper_fvg[0]
         if fvg_low > entry_high:
             target2 = max(target2, int(fvg_low))
-
+    
+    # rounding sesuai fraksi IDX
+    target1 = round_up(target1)
+    target2 = round_up(target2)
     # =================================
     # INVALIDATION
     # =================================
@@ -420,7 +449,7 @@ async def chart(ctx, ticker: str):
                 reverse=True
             )
 
-            return supply_zones[:2], demand_zones[:2]
+            return supply_zones[:5], demand_zones[:5]
 
 
         # =========================================
@@ -538,28 +567,6 @@ async def chart(ctx, ticker: str):
         # =========================================
         # NUMBER FORMATTER
         # =========================================
-        def get_tick_size(price):
-            if price < 200:
-                return 1
-            elif price < 500:
-                return 2
-            elif price < 2000:
-                return 5
-            elif price < 5000:
-                return 10
-            else:
-                return 25
-        
-        
-        def round_down(price):
-            tick = get_tick_size(price)
-            return int((price // tick) * tick)
-        
-        
-        def round_up(price):
-            tick = get_tick_size(price)
-            return int(((price + tick - 1) // tick) * tick)
-
     
         def format_billions(v):
             v = float(v)
