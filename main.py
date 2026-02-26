@@ -266,7 +266,7 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     # Target 2 (expansion move)
     if res_zones:
         resistance_price = int(res_zones[0][0])
-        target2 = max(target1, resistance_price)
+        target2 = max(target1 + zone_range, resistance_price)
     else:
         target2 = entry_high + (zone_range * 6)
     
@@ -279,11 +279,16 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     # rounding sesuai fraksi IDX
     target1 = round_up(target1)
     target2 = round_up(target2)
-    # =================================
-    # INVALIDATION
-    # =================================
-
-    invalidation = int(entry_low * 0.97)
+                         
+    # PRIORITY STOPLOSS ENGINE
+    if sup_zones:
+        # support terdekat di bawah entry
+        support_price = sup_zones[0][0]
+        invalidation = round_down(support_price)
+    
+    else:
+        # fallback ke demand low
+        invalidation = round_down(support_price * 0.995)
 
     confidence = min(85, best_demand["score"] * 14)
 
