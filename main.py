@@ -297,6 +297,7 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     return (
         "══════════════════\n"
         "🎯 TRADE PLAN\n\n"
+        f"Last Price : {int(last_price)}\n\n"
         f"Bias : {bias}\n"
         f"Confidence : {confidence}%\n\n"
         f"📌 Entry : {entry_low} - {entry_high}\n"
@@ -888,14 +889,6 @@ async def chart(ctx, ticker: str):
         
             f"📥 Demand 1 : {demand1}\n"
             f"📥 Demand 2 : {demand2}\n\n"
-        
-            f"🎯 Upside Target (FVG)\n"
-            f"Upper FVG 1 : {upper_fvg1}\n"
-            f"Upper FVG 2 : {upper_fvg2}\n\n"
-        
-            f"🎯 Downside Target (FVG)\n"
-            f"Lower FVG 1 : {lower_fvg1}\n"
-            f"Lower FVG 2 : {lower_fvg2}\n\n"
         
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
