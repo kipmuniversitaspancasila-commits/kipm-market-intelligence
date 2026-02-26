@@ -689,8 +689,8 @@ async def chart(ctx, ticker: str):
         # DEBUG CHECK DATA
         print("Demand:", final_demand_zones)
         print("Supply:", final_supply_zones)
-        print("Supports:", supports)
-        print("Resistances:", resistances)
+        print("sup_zones:", sup_zones)
+        print("res_zones:", res_zones)
         print("FVG:", upper_fvg)
                 
         trade_plan_text = build_trade_plan(
