@@ -454,6 +454,21 @@ async def chart(ctx, ticker: str):
         foreign_1w = foreign_engine(df.tail(5))
         foreign_1m = foreign_engine(df.tail(22))
 
+        # =========================================
+        # NUMBER FORMATTER
+        # =========================================
+        def format_billions(v):
+            v = float(v)
+        
+            if abs(v) >= 1_000_000_000_000:
+                return f"{v/1_000_000_000_000:.2f} T"
+            elif abs(v) >= 1_000_000_000:
+                return f"{v/1_000_000_000:.2f} B"
+            elif abs(v) >= 1_000_000:
+                return f"{v/1_000_000:.2f} M"
+            else:
+                return f"{v:,.0f}"
+
         # =============================
         # STYLE (TIDAK DIUBAH)
         # =============================
@@ -701,7 +716,9 @@ async def chart(ctx, ticker: str):
             "══════════════════\n"
         )
 
-                
+        format_billions(bandar_3d[0])
+        format_billions(bandar_3d[1])
+        format_billions(bandar_3d[2])  
         # =============================
         # FINAL CAPTION
         # =============================
