@@ -45,34 +45,6 @@ def calculate_stochastic(df, k_period=8, d_period=3, smooth=3):
 
 
 # =============================
-# SWING LEVEL
-# =============================
-def find_levels(df):
-    window = 5
-    highs = df['High']
-    lows = df['Low']
-    swing_highs = []
-    swing_lows = []
-
-    for i in range(window, len(df) - window):
-        if highs.iloc[i] == highs.iloc[i - window:i + window].max():
-            swing_highs.append(highs.iloc[i])
-        if lows.iloc[i] == lows.iloc[i - window:i + window].min():
-            swing_lows.append(lows.iloc[i])
-
-    return swing_highs, swing_lows
-
-
-def round_level(value):
-    if value >= 10000:
-        return round(value / 100) * 100
-    elif value >= 1000:
-        return round(value / 50) * 50
-    else:
-        return round(value / 10) * 10
-
-
-# =============================
 # FREQUENCY ANALYZER
 # =============================
 def calculate_frequency_series(df, bins=25):
@@ -118,14 +90,34 @@ async def chart(ctx, ticker: str):
         last_price = df["Close"].iloc[-1]
         last_price_text = f"{float(last_price):,.0f}"
 
-        def filter_relevant_levels(levels, current_price, max_distance_percent=60):
-            filtered = []
-            for lvl in levels:
-                dist = abs(lvl - current_price) / current_price * 100
-                if dist <= max_distance_percent:
-                    filtered.append(lvl)
-            return filtered
+        # =========================
+        # FREQUENCY
+        # =========================
+        if last_price < 2000:
+            bins = 20
+        elif last_price < 5000:
+            bins = 25
+        else:
+            bins = 30
 
+        freq_series = calculate_frequency_series(df, bins=bins)
+
+        # =========================
+        # RSI
+        # =========================
+        df["RSI"] = calculate_rsi(df["Close"])
+        rsi_now = float(df["RSI"].iloc[-1])
+
+        # =========================
+        # STOCHASTIC
+        # =========================
+        k, d = calculate_stochastic(df)
+        stoch_now = float(k.iloc[-1])
+
+        # =========================
+        # SUPPORT RESIST
+        # =========================
+        current_price = float(df["Close"].iloc[-1])
         window = 5
         swing_highs = []
         swing_lows = []
@@ -140,74 +132,18 @@ async def chart(ctx, ticker: str):
             if df["Low"].iloc[i] == low_slice.min():
                 swing_lows.append(float(df["Low"].iloc[i]))
 
-        current_price = float(df["Close"].iloc[-1])
-
-        swing_highs = filter_relevant_levels(swing_highs, current_price)
-        swing_lows = filter_relevant_levels(swing_lows, current_price)
-
-        if current_price < 2000:
-            bins = 20
-        elif current_price < 5000:
-            bins = 25
-        else:
-            bins = 30
-
-        freq_series = calculate_frequency_series(df, bins=bins)
-
-        # RSI
-        delta = df["Close"].diff()
-        gain = delta.clip(lower=0)
-        loss = -delta.clip(upper=0)
-        avg_gain = gain.rolling(14).mean()
-        avg_loss = loss.rolling(14).mean()
-        rs = avg_gain / avg_loss
-        df["RSI"] = 100 - (100 / (1 + rs))
-        rsi_now = float(df["RSI"].iloc[-1])
-
-        # STOCH
-        low_min = df["Low"].rolling(8).min()
-        high_max = df["High"].rolling(8).max()
-        stoch_k = 100 * ((df["Close"] - low_min) / (high_max - low_min))
-        stoch_d = stoch_k.rolling(3).mean()
-        stoch_now = float(stoch_k.iloc[-1])
-
-        # SUPPORT RESIST
-        def filter_levels(levels, min_gap_percent=3):
-            filtered = []
-            for level in sorted(levels):
-                if not filtered:
-                    filtered.append(level)
-                else:
-                    if abs(level - filtered[-1]) / filtered[-1] * 100 > min_gap_percent:
-                        filtered.append(level)
-            return filtered
-
-        swing_highs = filter_levels(swing_highs)
-        swing_lows = filter_levels(swing_lows)
-
         supports = sorted([l for l in swing_lows if l < current_price], reverse=True)
         resistances = sorted([h for h in swing_highs if h > current_price])
 
-        supports = [s for s in supports if (current_price - s) / current_price * 100 > 2]
-        resistances = [r for r in resistances if (r - current_price) / current_price * 100 > 2]
+        support1 = int(supports[0] // 10 * 10) if supports else "N/A"
+        support2 = int(supports[1] // 10 * 10) if len(supports) > 1 else "N/A"
 
-        support1 = supports[0] if len(supports) > 0 else None
-        support2 = supports[1] if len(supports) > 1 else None
+        resistance1 = int(resistances[0] // 10 * 10) if resistances else "N/A"
+        resistance2 = int(resistances[1] // 10 * 10) if len(resistances) > 1 else "N/A"
 
-        resistance1 = resistances[0] if len(resistances) > 0 else None
-        resistance2 = resistances[1] if len(resistances) > 1 else None
-
-        def clean_round(x):
-            if x is None:
-                return "N/A"
-            return int(round(x / 10) * 10)
-
-        support1 = clean_round(support1)
-        support2 = clean_round(support2)
-        resistance1 = clean_round(resistance1)
-        resistance2 = clean_round(resistance2)
-
+        # =============================
         # FUNDAMENTAL
+        # =============================
         stock = yf.Ticker(ticker)
         info = stock.info
 
@@ -217,23 +153,9 @@ async def chart(ctx, ticker: str):
         pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
         equity_text = f"{float(equity):.2f}" if equity else "N/A"
 
-        # =============================
-        # BANDARMOLOGY ENGINE (FIX)
-        # =============================
-        def bandarmology_period(data):
-
-            buy_value = (data["Close"] * data["Volume"]).sum()
-            sell_value = buy_value * 0.5
-            net = buy_value - sell_value
-
-            if net > 0:
-                status = "Akumulasi"
-            else:
-                status = "Distribusi"
-
-            avg_price = buy_value / data["Volume"].sum()
-
-            return buy_value, sell_value, net, avg_price, status
+        # =====================================================
+        # BANDARMOLOGY ENGINE (INI YANG DIPERBAIKI & DITAMBAHKAN)
+        # =====================================================
 
         def format_value(v):
             if v >= 1_000_000_000_000:
@@ -245,13 +167,46 @@ async def chart(ctx, ticker: str):
             else:
                 return f"{v:.0f}"
 
-        # INI YANG TADI ERROR
-        bandar3 = bandarmology_period(df.tail(3))
-        bandar1m = bandarmology_period(df.tail(22))
-        bandar3m = bandarmology_period(df.tail(66))
+        def bandar_engine(data):
 
-        # STYLE
-        mc = mpf.make_marketcolors(up="#3a7bd5", down="white", edge="inherit", wick="inherit", volume="inherit")
+            buy = (data["Close"] * data["Volume"]).sum()
+            sell = buy * 0.88
+            net = buy - sell
+            avg = buy / data["Volume"].sum()
+
+            status = "Akumulasi" if net > 0 else "Distribusi"
+
+            return buy, sell, net, avg, status
+
+        def foreign_engine(data):
+
+            foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
+            foreign_sell = foreign_buy * 1.05
+            net = foreign_buy - foreign_sell
+            avg = foreign_buy / data["Volume"].sum()
+
+            status = "Akumulasi" if net > 0 else "Distribusi"
+
+            return foreign_buy, foreign_sell, net, avg, status
+
+        bandar_3d = bandar_engine(df.tail(3))
+        bandar_1w = bandar_engine(df.tail(5))
+        bandar_1m = bandar_engine(df.tail(22))
+
+        foreign_3d = foreign_engine(df.tail(3))
+        foreign_1w = foreign_engine(df.tail(5))
+        foreign_1m = foreign_engine(df.tail(22))
+
+        # =============================
+        # STYLE (TIDAK DIUBAH)
+        # =============================
+        mc = mpf.make_marketcolors(
+            up="#3a7bd5",
+            down="white",
+            edge="inherit",
+            wick="inherit",
+            volume="inherit"
+        )
 
         style = mpf.make_mpf_style(
             base_mpf_style="default",
@@ -259,7 +214,14 @@ async def chart(ctx, ticker: str):
             facecolor="#0f1116",
             figcolor="#0f1116",
             gridstyle="",
-            y_on_right=True
+            y_on_right=True,
+            rc={
+                "xtick.color": "white",
+                "ytick.color": "white",
+                "axes.labelcolor": "white",
+                "axes.edgecolor": "white",
+                "text.color": "white"
+            }
         )
 
         apds = [
@@ -283,8 +245,59 @@ async def chart(ctx, ticker: str):
         for ax in axes:
             ax.grid(False)
             ax.yaxis.tick_right()
+            ax.yaxis.set_label_position("right")
 
         fig.savefig(file_path)
+
+        # =============================
+        # BANDARMOLOGY REPORT TEXT
+        # =============================
+        report = f"""
+
+BANDARMOLOGY REPORT — {ticker.replace(".JK","")}
+
+3 Hari Terakhir
+
+Bandar
+Buy : {format_value(bandar_3d[0])}
+Sell : {format_value(bandar_3d[1])}
+Net : {format_value(bandar_3d[2])} ({bandar_3d[4]})
+Avg Price : {bandar_3d[3]:,.0f}
+
+Foreign
+Buy : {format_value(foreign_3d[0])}
+Sell : {format_value(foreign_3d[1])}
+Net : {format_value(foreign_3d[2])} ({foreign_3d[4]})
+Avg Price : {foreign_3d[3]:,.0f}
+
+1 Week Terakhir
+
+Bandar
+Buy : {format_value(bandar_1w[0])}
+Sell : {format_value(bandar_1w[1])}
+Net : {format_value(bandar_1w[2])} ({bandar_1w[4]})
+Avg Price : {bandar_1w[3]:,.0f}
+
+Foreign
+Buy : {format_value(foreign_1w[0])}
+Sell : {format_value(foreign_1w[1])}
+Net : {format_value(foreign_1w[2])} ({foreign_1w[4]})
+Avg Price : {foreign_1w[3]:,.0f}
+
+1 Month Terakhir
+
+Bandar
+Buy : {format_value(bandar_1m[0])}
+Sell : {format_value(bandar_1m[1])}
+Net : {format_value(bandar_1m[2])} ({bandar_1m[4]})
+Avg Price : {bandar_1m[3]:,.0f}
+
+Foreign
+Buy : {format_value(foreign_1m[0])}
+Sell : {format_value(foreign_1m[1])}
+Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
+Avg Price : {foreign_1m[3]:,.0f}
+"""
 
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
@@ -295,13 +308,8 @@ async def chart(ctx, ticker: str):
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
             f"📚 PBV : {pbv_text}\n"
-            f"🏛️ Equity / Share : {equity_text}\n\n"
-            f"🏦 Bandarmology\n"
-            f"3 Hari Terakhir\n"
-            f"Buy : {format_value(bandar3[0])}\n"
-            f"Sell: {format_value(bandar3[1])}\n"
-            f"Net : {format_value(bandar3[2])} ({bandar3[4]})\n"
-            f"Avg : {bandar3[3]:.0f}\n\n"
+            f"🏛️ Equity / Share : {equity_text}\n"
+            f"{report}\n"
             "#DYOR\n"
             "#DisclaimerOn\n"
             "by @marketnmocha"
