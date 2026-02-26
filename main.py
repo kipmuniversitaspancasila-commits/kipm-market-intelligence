@@ -713,22 +713,22 @@ async def chart(ctx, ticker: str):
                 f"Kualitas Foreign :\n{kualitas}"
             )
 
-bandar_text = format_bandarmology(
-    accum_3d, avg_3d,
-    accum_1m, avg_1m,
-    accum_3m, avg_3m,
-    demand_zone
-)
-
-foreign_text = format_foreign_flow(
-    net_3d, avg_f3d,
-    net_1m, avg_f1m,
-    net_3m, avg_f3m,
-    demand_zone
-)
-
-embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
-embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
+        bandar_text = format_bandarmology(
+            accum_3d, avg_3d,
+            accum_1m, avg_1m,
+            accum_3m, avg_3m,
+            demand_zone
+        )
+        
+        foreign_text = format_foreign_flow(
+            net_3d, avg_f3d,
+            net_1m, avg_f1m,
+            net_3m, avg_f3m,
+            demand_zone
+        )
+        
+        embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
+        embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
         # =============================
         # SUPPORT RESISTANCE RESULT
         # =============================
