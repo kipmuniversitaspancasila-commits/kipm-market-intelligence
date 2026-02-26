@@ -225,8 +225,8 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
             "══════════════════\n"
         )
 
-    entry_low = int(best_demand["low"] // 10 * 10)
-    entry_high = int(best_demand["high"] // 10 * 10)
+    entry_low = round_down(best_demand["low"])
+    entry_high = round_down(best_demand["high"])
 
     zone_range = entry_high - entry_low
 
@@ -549,6 +549,26 @@ async def chart(ctx, ticker: str):
                 return f"{v/1_000_000:.2f} M"
             else:
                 return f"{v:,.0f}"
+
+        def get_tick_size(price):
+            if price < 200:
+                return 1
+            elif price < 500:
+                return 2
+            elif price < 2000:
+                return 5
+            elif price < 5000:
+                return 10
+            else:
+                return 25
+
+        def round_down(price):
+            tick = get_tick_size(price)
+            return int((price // tick) * tick)
+        
+        def round_up(price):
+            tick = get_tick_size(price)
+            return int(((price + tick - 1) // tick) * tick)
 
         # =============================
         # STYLE (TIDAK DIUBAH)
