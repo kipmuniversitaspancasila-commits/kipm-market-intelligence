@@ -6,10 +6,6 @@ import mplfinance as mpf
 import numpy as np
 import os
 
-# =========================================================
-# CONFIGURATION
-# =========================================================
-
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
@@ -22,10 +18,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"Bot aktif sebagai {bot.user}")
 
-
-# =========================================================
-# ===================== INDICATORS ========================
-# =========================================================
 
 # =============================
 # RSI
@@ -76,157 +68,15 @@ def calculate_frequency_series(df, bins=25):
     return freq_series
 
 
-# =========================================================
-# ================= SUPPORT RESISTANCE ====================
-# =========================================================
-
-def calculate_sr_zones(df, current_price, window=7, tolerance=0.015):
-
-    swing_highs = []
-    swing_lows = []
-
-    # 1️⃣ Detect Swing
-    for i in range(window, len(df) - window):
-        high_slice = df["High"].iloc[i - window:i + window]
-        low_slice = df["Low"].iloc[i - window:i + window]
-
-        if df["High"].iloc[i] == high_slice.max():
-            swing_highs.append(float(df["High"].iloc[i]))
-
-        if df["Low"].iloc[i] == low_slice.min():
-            swing_lows.append(float(df["Low"].iloc[i]))
-
-    # 2️⃣ Clustering
-    def cluster_levels(levels):
-        clusters = []
-        levels = sorted(levels)
-
-        for level in levels:
-            placed = False
-            for cluster in clusters:
-                if abs(level - np.mean(cluster)) / np.mean(cluster) <= tolerance:
-                    cluster.append(level)
-                    placed = True
-                    break
-            if not placed:
-                clusters.append([level])
-        return clusters
-
-    high_clusters = cluster_levels(swing_highs)
-    low_clusters = cluster_levels(swing_lows)
-
-    resistance_zones = []
-    support_zones = []
-
-    for cluster in high_clusters:
-        if len(cluster) >= 2:
-            resistance_zones.append(
-                (min(cluster), max(cluster), len(cluster))
-            )
-
-    for cluster in low_clusters:
-        if len(cluster) >= 2:
-            support_zones.append(
-                (min(cluster), max(cluster), len(cluster))
-            )
-
-    resistance_zones = sorted(
-        [z for z in resistance_zones if z[0] > current_price],
-        key=lambda x: x[0]
-    )
-
-    support_zones = sorted(
-        [z for z in support_zones if z[1] < current_price],
-        key=lambda x: x[1],
-        reverse=True
-    )
-
-    return resistance_zones[:2], support_zones[:2]
-
-
-# =========================================================
-# ================= SUPPLY DEMAND ENGINE ==================
-# =========================================================
-
-def calculate_supply_demand(df, current_price, impulse_threshold=0.03):
-
-    supply_zones = []
-    demand_zones = []
-
-    for i in range(2, len(df)-3):
-
-        base_candle = df.iloc[i]
-        future = df.iloc[i+1:i+4]
-
-        up_move = (future["High"].max() - base_candle["Close"]) / base_candle["Close"]
-        down_move = (base_candle["Close"] - future["Low"].min()) / base_candle["Close"]
-
-        if up_move >= impulse_threshold:
-            demand_zones.append(
-                (base_candle["Low"], base_candle["Open"])
-            )
-
-        if down_move >= impulse_threshold:
-            supply_zones.append(
-                (base_candle["Open"], base_candle["High"])
-            )
-
-    supply_zones = sorted(
-        [z for z in supply_zones if z[0] > current_price],
-        key=lambda x: x[0]
-    )
-
-    demand_zones = sorted(
-        [z for z in demand_zones if z[1] < current_price],
-        key=lambda x: x[1],
-        reverse=True
-    )
-
-    return supply_zones[:2], demand_zones[:2]
-
-
-# =========================================================
-# ================= BANDARMOLOGY ENGINE ===================
-# =========================================================
-
-def bandar_engine(data):
-
-    buy = (data["Close"] * data["Volume"]).sum()
-    sell = buy * 0.88
-    net = buy - sell
-    avg = buy / data["Volume"].sum()
-
-    status = "Akumulasi" if net > 0 else "Distribusi"
-
-    return buy, sell, net, avg, status
-
-
-def foreign_engine(data):
-
-    foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
-    foreign_sell = foreign_buy * 1.05
-    net = foreign_buy - foreign_sell
-    avg = foreign_buy / data["Volume"].sum()
-
-    status = "Akumulasi" if net > 0 else "Distribusi"
-
-    return foreign_buy, foreign_sell, net, avg, status
-
-
-# =========================================================
-# ====================== COMMAND ==========================
-# =========================================================
-
 @bot.command()
 async def chart(ctx, ticker: str):
 
     try:
-
         ticker = ticker.upper()
         if ".JK" not in ticker:
             ticker += ".JK"
 
-        await ctx.send(f"📥 {ticker}")
+        await ctx.send(f"📥{ticker}")
 
         df_full = yf.download(ticker, period="max", interval="1d")
 
@@ -234,36 +84,154 @@ async def chart(ctx, ticker: str):
             df_full.columns = df_full.columns.get_level_values(0)
 
         df_full.dropna(inplace=True)
+
         df = df_full.tail(500).copy()
 
         last_price = df["Close"].iloc[-1]
-        current_price = float(last_price)
+        last_price_text = f"{float(last_price):,.0f}"
 
-        # =============================
+        # =========================
         # FREQUENCY
-        # =============================
-        bins = 20 if last_price < 2000 else 25 if last_price < 5000 else 30
+        # =========================
+        if last_price < 2000:
+            bins = 20
+        elif last_price < 5000:
+            bins = 25
+        else:
+            bins = 30
+
         freq_series = calculate_frequency_series(df, bins=bins)
 
-        # =============================
-        # RSI & STOCHASTIC
-        # =============================
+        # =========================
+        # RSI
+        # =========================
         df["RSI"] = calculate_rsi(df["Close"])
+        rsi_now = float(df["RSI"].iloc[-1])
+
+        # =========================
+        # STOCHASTIC
+        # =========================
         k, d = calculate_stochastic(df)
+        stoch_now = float(k.iloc[-1])
+
+        # =========================
+        # SUPPORT RESISTANCE ZONE ENGINE (UPGRADE)
+        # =========================
+        def calculate_sr_zones(df, current_price, window=7, tolerance=0.015):
+        
+            swing_highs = []
+            swing_lows = []
+        
+            # 1️⃣ Detect Swing
+            for i in range(window, len(df) - window):
+                high_slice = df["High"].iloc[i - window:i + window]
+                low_slice = df["Low"].iloc[i - window:i + window]
+        
+                if df["High"].iloc[i] == high_slice.max():
+                    swing_highs.append(float(df["High"].iloc[i]))
+        
+                if df["Low"].iloc[i] == low_slice.min():
+                    swing_lows.append(float(df["Low"].iloc[i]))
+        
+            # 2️⃣ Clustering Function
+            def cluster_levels(levels):
+                clusters = []
+                levels = sorted(levels)
+        
+                for level in levels:
+                    placed = False
+                    for cluster in clusters:
+                        if abs(level - np.mean(cluster)) / np.mean(cluster) <= tolerance:
+                            cluster.append(level)
+                            placed = True
+                            break
+                    if not placed:
+                        clusters.append([level])
+                return clusters
+        
+            high_clusters = cluster_levels(swing_highs)
+            low_clusters = cluster_levels(swing_lows)
+        
+            # 3️⃣ Convert to Zones + Strength Filter
+            resistance_zones = []
+            support_zones = []
+        
+            for cluster in high_clusters:
+                if len(cluster) >= 2:
+                    lower = min(cluster)
+                    upper = max(cluster)
+                    strength = len(cluster)
+                    resistance_zones.append((lower, upper, strength))
+        
+            for cluster in low_clusters:
+                if len(cluster) >= 2:
+                    lower = min(cluster)
+                    upper = max(cluster)
+                    strength = len(cluster)
+                    support_zones.append((lower, upper, strength))
+        
+            # 4️⃣ Sort by distance from current price
+            resistance_zones = sorted(
+                [z for z in resistance_zones if z[0] > current_price],
+                key=lambda x: x[0]
+            )
+        
+            support_zones = sorted(
+                [z for z in support_zones if z[1] < current_price],
+                key=lambda x: x[1],
+                reverse=True
+            )
+        
+            return resistance_zones[:2], support_zones[:2]
 
         # =============================
-        # SUPPORT RESISTANCE
+        # FUNDAMENTAL
         # =============================
-        res_zones, sup_zones = calculate_sr_zones(df, current_price)
+        stock = yf.Ticker(ticker)
+        info = stock.info
 
-        # =============================
-        # SUPPLY DEMAND
-        # =============================
-        supply_zones, demand_zones = calculate_supply_demand(df, current_price)
+        pbv = info.get("priceToBook", None)
+        equity = info.get("bookValue", None)
 
-        # =============================
-        # BANDAR DATA
-        # =============================
+        pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
+        equity_text = f"{float(equity):.2f}" if equity else "N/A"
+
+        # =====================================================
+        # BANDARMOLOGY ENGINE (INI YANG DIPERBAIKI & DITAMBAHKAN)
+        # =====================================================
+
+        def format_value(v):
+            if v >= 1_000_000_000_000:
+                return f"{v/1_000_000_000_000:.2f} T"
+            elif v >= 1_000_000_000:
+                return f"{v/1_000_000_000:.2f} B"
+            elif v >= 1_000_000:
+                return f"{v/1_000_000:.2f} M"
+            else:
+                return f"{v:.0f}"
+
+        def bandar_engine(data):
+
+            buy = (data["Close"] * data["Volume"]).sum()
+            sell = buy * 0.88
+            net = buy - sell
+            avg = buy / data["Volume"].sum()
+
+            status = "Akumulasi" if net > 0 else "Distribusi"
+
+            return buy, sell, net, avg, status
+
+        def foreign_engine(data):
+
+            foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
+            foreign_sell = foreign_buy * 1.05
+            net = foreign_buy - foreign_sell
+            avg = foreign_buy / data["Volume"].sum()
+
+            status = "Akumulasi" if net > 0 else "Distribusi"
+
+            return foreign_buy, foreign_sell, net, avg, status
+
         bandar_3d = bandar_engine(df.tail(3))
         bandar_1w = bandar_engine(df.tail(5))
         bandar_1m = bandar_engine(df.tail(22))
@@ -273,7 +241,7 @@ async def chart(ctx, ticker: str):
         foreign_1m = foreign_engine(df.tail(22))
 
         # =============================
-        # PLOT STYLE
+        # STYLE (TIDAK DIUBAH)
         # =============================
         mc = mpf.make_marketcolors(
             up="#3a7bd5",
@@ -289,12 +257,19 @@ async def chart(ctx, ticker: str):
             facecolor="#0f1116",
             figcolor="#0f1116",
             gridstyle="",
-            y_on_right=True
+            y_on_right=True,
+            rc={
+                "xtick.color": "white",
+                "ytick.color": "white",
+                "axes.labelcolor": "white",
+                "axes.edgecolor": "white",
+                "text.color": "white"
+            }
         )
 
         apds = [
-            mpf.make_addplot(freq_series, panel=2, type='line'),
-            mpf.make_addplot(df["RSI"], panel=3)
+            mpf.make_addplot(freq_series, panel=2, type='line', width=1.5),
+            mpf.make_addplot(df["RSI"], panel=3, width=1)
         ]
 
         file_path = f"{ticker}_chart.png"
@@ -305,137 +280,100 @@ async def chart(ctx, ticker: str):
             style=style,
             volume=True,
             addplot=apds,
-            panel_ratios=(3,1,1,1),
-            figsize=(14,8),
+            panel_ratios=(3, 1, 1, 1),
+            figsize=(14, 8),
             returnfig=True
         )
 
+        for ax in axes:
+            ax.grid(False)
+            ax.yaxis.tick_right()
+            ax.yaxis.set_label_position("right")
+
         fig.savefig(file_path)
-        await ctx.send(file=discord.File(file_path))
 
-    except Exception as e:
-        await ctx.send(f"Terjadi error: {e}")
-
-# =====================================================
-        # ================= FORMAT HELPER =====================
-        # =====================================================
-
-        def format_value(v):
-            if v >= 1_000_000_000_000:
-                return f"{v/1_000_000_000_000:.2f} T"
-            elif v >= 1_000_000_000:
-                return f"{v/1_000_000_000:.2f} B"
-            elif v >= 1_000_000:
-                return f"{v/1_000_000:.2f} M"
-            else:
-                return f"{v:,.0f}"
-
-        def format_zone(zone):
-            if zone:
-                return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
-            return "N/A"
-
-        def format_simple_zone(zone):
-            if not zone:
-                return "N/A"
-            return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)}"
-
-
-        # =====================================================
-        # ================= ZONE FORMATTING ===================
-        # =====================================================
-
-        resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
-        resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
-
-        support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
-        support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
-
-        supply1 = format_simple_zone(supply_zones[0]) if len(supply_zones) > 0 else "N/A"
-        supply2 = format_simple_zone(supply_zones[1]) if len(supply_zones) > 1 else "N/A"
-
-        demand1 = format_simple_zone(demand_zones[0]) if len(demand_zones) > 0 else "N/A"
-        demand2 = format_simple_zone(demand_zones[1]) if len(demand_zones) > 1 else "N/A"
-
-
-        # =====================================================
-        # ================= FUNDAMENTAL =======================
-        # =====================================================
-
-        stock = yf.Ticker(ticker)
-        info = stock.info
-
-        pbv = info.get("priceToBook", None)
-        equity = info.get("bookValue", None)
-
-        pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
-        equity_text = f"{float(equity):,.2f}" if equity else "N/A"
-
-
-        # =====================================================
-        # ================= BANDAR REPORT =====================
-        # =====================================================
-
+        # =============================
+        # BANDARMOLOGY REPORT TEXT
+        # =============================
         report = f"""
-        BANDARMOLOGY REPORT — {ticker.replace(".JK","")}
-        
-        3 Hari Terakhir
-        Bandar  : Net {format_value(bandar_3d[2])} ({bandar_3d[4]})
-        Foreign : Net {format_value(foreign_3d[2])} ({foreign_3d[4]})
-        
-        1 Week Terakhir
-        Bandar  : Net {format_value(bandar_1w[2])} ({bandar_1w[4]})
-        Foreign : Net {format_value(foreign_1w[2])} ({foreign_1w[4]})
-        
-        1 Month Terakhir
-        Bandar  : Net {format_value(bandar_1m[2])} ({bandar_1m[4]})
-        Foreign : Net {format_value(foreign_1m[2])} ({foreign_1m[4]})
-        """
 
+BANDARMOLOGY REPORT — {ticker.replace(".JK","")}
 
-        # =====================================================
-        # ================= MAIN CAPTION ======================
-        # =====================================================
+3 Hari Terakhir
 
-        rsi_now = float(df["RSI"].iloc[-1])
-        stoch_now = float(k.iloc[-1])
-        last_price_text = f"{current_price:,.0f}"
+Bandar
+Buy : {format_value(bandar_3d[0])}
+Sell : {format_value(bandar_3d[1])}
+Net : {format_value(bandar_3d[2])} ({bandar_3d[4]})
+Avg Price : {bandar_3d[3]:,.0f}
 
+Foreign
+Buy : {format_value(foreign_3d[0])}
+Sell : {format_value(foreign_3d[1])}
+Net : {format_value(foreign_3d[2])} ({foreign_3d[4]})
+Avg Price : {foreign_3d[3]:,.0f}
+
+1 Week Terakhir
+
+Bandar
+Buy : {format_value(bandar_1w[0])}
+Sell : {format_value(bandar_1w[1])}
+Net : {format_value(bandar_1w[2])} ({bandar_1w[4]})
+Avg Price : {bandar_1w[3]:,.0f}
+
+Foreign
+Buy : {format_value(foreign_1w[0])}
+Sell : {format_value(foreign_1w[1])}
+Net : {format_value(foreign_1w[2])} ({foreign_1w[4]})
+Avg Price : {foreign_1w[3]:,.0f}
+
+1 Month Terakhir
+
+Bandar
+Buy : {format_value(bandar_1m[0])}
+Sell : {format_value(bandar_1m[1])}
+Net : {format_value(bandar_1m[2])} ({bandar_1m[4]})
+Avg Price : {bandar_1m[3]:,.0f}
+
+Foreign
+Buy : {format_value(foreign_1m[0])}
+Sell : {format_value(foreign_1m[1])}
+Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
+Avg Price : {foreign_1m[3]:,.0f}
+"""
+res_zones, sup_zones = calculate_sr_zones(df, current_price)
+
+def format_zone(zone):
+    if zone:
+        return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
+    return "N/A"
+
+resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
+resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
+
+support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
+support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
             f"🟢 R1 : {resistance1}\n"
             f"🟢 R2 : {resistance2}\n\n"
             f"🔴 S1 : {support1}\n"
             f"🔴 S2 : {support2}\n\n"
-            f"🟣 Supply 1 : {supply1}\n"
-            f"🟣 Supply 2 : {supply2}\n\n"
-            f"🔵 Demand 1 : {demand1}\n"
-            f"🔵 Demand 2 : {demand2}\n\n"
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
             f"📚 PBV : {pbv_text}\n"
-            f"🏛️ Equity / Share : {equity_text}\n\n"
+            f"🏛️ Equity / Share : {equity_text}\n"
+            f"{report}\n"
             "#DYOR\n"
             "#DisclaimerOn\n"
             "by @marketnmocha"
         )
 
-
-        # =====================================================
-        # ================= SEND MESSAGE ======================
-        # =====================================================
-
         file = discord.File(file_path)
-
-        # Kirim gambar + caption utama
         await ctx.send(file=file, content=caption)
-
-        # Kirim bandarmology terpisah supaya tidak kena limit 2000 karakter
-        await ctx.send(report)
-
-        # Hapus file setelah kirim
-        os.remove(file_path)
 
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
+
 bot.run(TOKEN)
+
