@@ -105,6 +105,38 @@ def estimate_probability(score):
     else:
         return "Low probability"
 
+def detect_bias(supply_zones, demand_zones, rsi_now):
+
+    if not supply_zones and not demand_zones:
+        return "Neutral"
+
+    avg_supply = sum([z["score"] for z in supply_zones]) / len(supply_zones) if supply_zones else 0
+    avg_demand = sum([z["score"] for z in demand_zones]) / len(demand_zones) if demand_zones else 0
+
+    # RSI confirmation logic
+    if avg_demand > avg_supply and rsi_now < 40:
+        return "🟢 Bullish Reversal Potential"
+
+    if avg_supply > avg_demand and rsi_now > 60:
+        return "🔴 Bearish Reversal Potential"
+
+    if avg_demand > avg_supply:
+        return "🟢 Bullish Pressure"
+
+    if avg_supply > avg_demand:
+        return "🔴 Bearish Pressure"
+
+    return "⚖️ Neutral / Wait Confirmation"
+
+def liquidity_magnet(last_price, upper_fvg, lower_fvg):
+    if upper_fvg and last_price < upper_fvg[0]:
+        return "🎯 Price attracted to Upper FVG"
+
+    if lower_fvg and last_price > lower_fvg[1]:
+        return "🎯 Price attracted to Lower FVG"
+
+    return "No strong liquidity magnet"
+
 # =========================================
 # MAIN COMMAND
 # =========================================
@@ -612,30 +644,6 @@ Avg Price : {foreign_1m[3]:,.0f}
             "══════════════════\n"
         )
 
-
-        def detect_bias(supply_zones, demand_zones, rsi_value):
-            supply_score = max([z["score"] for z in supply_zones], default=0)
-            demand_score = max([z["score"] for z in demand_zones], default=0)
-        
-            if demand_score > supply_score and rsi_value < 30:
-                return "🟢 Bullish Reversal Potential"
-        
-            elif supply_score > demand_score and rsi_value > 70:
-                return "🔴 Bearish Rejection Potential"
-        
-            else:
-                return "⚖️ Neutral / Wait Confirmation"
-        
-        
-        def liquidity_magnet(last_price, upper_fvg, lower_fvg):
-            if upper_fvg and last_price < upper_fvg[0]:
-                return "🎯 Price attracted to Upper FVG"
-        
-            if lower_fvg and last_price > lower_fvg[1]:
-                return "🎯 Price attracted to Lower FVG"
-        
-            return "No strong liquidity magnet"
-        
                 
         # =============================
         # FINAL CAPTION
