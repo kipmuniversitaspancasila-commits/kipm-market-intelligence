@@ -132,7 +132,7 @@ def detect_liquidity_sweep(df):
 # VOLUME SPIKE
 # ===============================
 def detect_volume_spike(df):
-    avg = df["Volume"].rolling(20).mean().iloc[-1]
+    avg = df["Volume"].rolling(20).mean().iloc[-1] or 0
     last = df["Volume"].iloc[-1]
     return last > avg * 1.8
 
@@ -181,29 +181,6 @@ def liquidity_magnet(last_price, upper_fvg, lower_fvg):
             return "🎯 Price attracted to Lower FVG"
 
     return "No strong liquidity magnet"
-
-
-# ===============================
-# MERGE ZONES
-# ===============================
-def merge_zones(zones):
-    if not zones:
-        return []
-
-    zones = sorted(zones, key=lambda x: x[0])
-    merged = []
-
-    current_low, current_high = zones[0]
-
-    for low, high in zones[1:]:
-        if low <= current_high:
-            current_high = max(current_high, high)
-        else:
-            merged.append((current_low, current_high))
-            current_low, current_high = low, high
-
-    merged.append((current_low, current_high))
-    return merged
 
 # ===============================
 # PRICE FRACTION ENGINE (IDX)
@@ -288,7 +265,7 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     # =================================
     
     zone_range = entry_high - entry_low
-    risk = entry_high - invalidation
+    risk = max(1, entry_high - invalidation)
     
     min_target_distance = risk * 2.5
     
@@ -304,7 +281,7 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
             target2 = max(target2, resistance_price)
     
     # FVG override (hanya jika jauh)
-    if upper_fvg:
+    if upper_fvg and len(upper_fvg) > 0:
         fvg_low, fvg_high = upper_fvg[0]
         if fvg_low > target1:
             target2 = max(target2, int(fvg_low))
