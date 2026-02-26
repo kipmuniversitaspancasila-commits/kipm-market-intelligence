@@ -68,41 +68,42 @@ def calculate_frequency_series(df, bins=25):
 
     return freq_series
 
-        def score_zone(zone):
-            score = 0
-            
-            if zone["type"] in ["supply", "demand"]:
-                score += 2
-            if zone.get("has_sr", False):
-                score += 2
-            if zone.get("has_fvg", False):
-                score += 1
-            if zone.get("fresh", False):
-                score += 1
-            if zone.get("multi_tf", False):
-                score += 2
-        
-            return score
+def score_zone(zone):
+    score = 0
 
-        def classify_zone(score):
-            if score >= 6:
-                return "🔥 Major Institutional Zone"
-            elif score >= 4:
-                return "⚡ Strong Reaction Zone"
-            elif score >= 2:
-                return "🟡 Moderate Zone"
-            else:
-                return "⚪ Weak Zone"
+    if zone["has_sr"]:
+        score += 2
 
-        def estimate_probability(score):
-            if score >= 6:
-                return "≈ 75% reaction probability"
-            elif score >= 4:
-                return "≈ 60% reaction probability"
-            elif score >= 2:
-                return "≈ 45% reaction probability"
-            else:
-                return "Low probability"
+    if zone["has_fvg"]:
+        score += 2
+
+    if zone["fresh"]:
+        score += 1
+
+    if zone["multi_tf"]:
+        score += 2
+
+    return score
+
+def classify_zone(score):
+    if score >= 6:
+        return "🔥 Major Institutional Zone"
+    elif score >= 4:
+        return "⚡ Strong Reaction Zone"
+    elif score >= 2:
+        return "🟡 Moderate Zone"
+    else:
+        return "⚪ Weak Zone"
+
+def estimate_probability(score):
+    if score >= 6:
+        return "≈ 75% reaction probability"
+    elif score >= 4:
+        return "≈ 60% reaction probability"
+    elif score >= 2:
+        return "≈ 45% reaction probability"
+    else:
+        return "Low probability"
 
 # =========================================
 # MAIN COMMAND
