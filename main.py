@@ -184,6 +184,49 @@ async def chart(ctx, ticker: str):
         
             return resistance_zones[:2], support_zones[:2]
 
+        # =========================
+        # SUPPLY DEMAND ENGINE
+        # =========================
+        def calculate_supply_demand(df, current_price, impulse_threshold=0.03):
+        
+            supply_zones = []
+            demand_zones = []
+        
+            for i in range(2, len(df)-3):
+        
+                base_candle = df.iloc[i]
+                future = df.iloc[i+1:i+4]
+        
+                # Calculate impulse %
+                up_move = (future["High"].max() - base_candle["Close"]) / base_candle["Close"]
+                down_move = (base_candle["Close"] - future["Low"].min()) / base_candle["Close"]
+        
+                # Demand Zone (bullish impulse)
+                if up_move >= impulse_threshold:
+                    lower = base_candle["Low"]
+                    upper = base_candle["Open"]
+                    demand_zones.append((lower, upper))
+        
+                # Supply Zone (bearish impulse)
+                if down_move >= impulse_threshold:
+                    lower = base_candle["Open"]
+                    upper = base_candle["High"]
+                    supply_zones.append((lower, upper))
+        
+            # Sort zones
+            supply_zones = sorted(
+                [z for z in supply_zones if z[0] > current_price],
+                key=lambda x: x[0]
+            )
+        
+            demand_zones = sorted(
+                [z for z in demand_zones if z[1] < current_price],
+                key=lambda x: x[1],
+                reverse=True
+            )
+        
+            return supply_zones[:2], demand_zones[:2]
+
         # =============================
         # FUNDAMENTAL
         # =============================
@@ -348,6 +391,7 @@ Avg Price : {foreign_1m[3]:,.0f}
         current_price = float(last_price)
 
         res_zones, sup_zones = calculate_sr_zones(df, current_price)
+        supply_zones, demand_zones = calculate_supply_demand(df, current_price)
 
         def format_zone(zone):
             if zone:
@@ -359,6 +403,18 @@ Avg Price : {foreign_1m[3]:,.0f}
 
         support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
         support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
+
+
+        def format_simple_zone(zone):
+            if not zone:
+                return "N/A"
+            return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)}"
+            
+        supply1 = format_simple_zone(supply_zones[0]) if len(supply_zones)>0 else "N/A"
+        supply2 = format_simple_zone(supply_zones[1]) if len(supply_zones)>1 else "N/A"
+        
+        demand1 = format_simple_zone(demand_zones[0]) if len(demand_zones)>0 else "N/A"
+        demand2 = format_simple_zone(demand_zones[1]) if len(demand_zones)>1 else "N/A"
 
         # =============================
         # FINAL CAPTION
