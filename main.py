@@ -571,7 +571,7 @@ async def chart(ctx, ticker: str):
         if df.empty:
             await ctx.send("Data tidak ditemukan")
             return
-    
+        
         # ===============================
         # 2️⃣ BANDAR ENGINE
         # ===============================
@@ -613,7 +613,7 @@ async def chart(ctx, ticker: str):
             demand_zone
         )
     
-        await ctx.send(bandar_text + "\n" + foreign_text)
+        await ctx.send(f"Data {symbol} berhasil diambil")
 
         def bandar_quality(accum_3d, avg_3d, demand_zone):
             if accum_3d > 0 and avg_3d >= demand_zone:
