@@ -1,3 +1,8 @@
+# ===============================
+# KIPM MARKET INTELLIGENCE v2
+# Institutional Engine Upgrade
+# ===============================
+
 import discord
 from discord.ext import commands
 import yfinance as yf
@@ -6,9 +11,6 @@ import mplfinance as mpf
 import numpy as np
 import os
 
-# =========================================
-# CONFIG
-# =========================================
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
@@ -19,14 +21,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"Bot aktif sebagai {bot.user}")
+    print(f"KIPM Market Intelligence v2 aktif sebagai {bot.user}")
 
 
-# =========================================
-# INDICATORS
-# =========================================
-
-# ---------------- RSI ----------------
+# ===============================
+# RSI
+# ===============================
 def calculate_rsi(series, period=14):
     delta = series.diff()
     gain = delta.clip(lower=0)
@@ -37,7 +37,9 @@ def calculate_rsi(series, period=14):
     return 100 - (100 / (1 + rs))
 
 
-# ---------------- STOCHASTIC 8,3,3 ----------------
+# ===============================
+# STOCHASTIC
+# ===============================
 def calculate_stochastic(df, k_period=8, d_period=3, smooth=3):
     low_min = df["Low"].rolling(window=k_period).min()
     high_max = df["High"].rolling(window=k_period).max()
@@ -47,17 +49,15 @@ def calculate_stochastic(df, k_period=8, d_period=3, smooth=3):
     return k_smooth, d
 
 
-# ---------------- FREQUENCY ANALYZER ----------------
+# ===============================
+# FREQUENCY ANALYZER
+# ===============================
 def calculate_frequency_series(df, bins=25):
-
     df = df.copy()
     df["Typical"] = (df["High"] + df["Low"] + df["Close"]) / 3
-
     prices = df["Typical"].values
     volumes = df["Volume"].values
-
     hist, bin_edges = np.histogram(prices, bins=bins, weights=volumes)
-
     freq_series = pd.Series(0.0, index=df.index)
 
     for i in range(len(hist)):
@@ -68,8 +68,13 @@ def calculate_frequency_series(df, bins=25):
 
     return freq_series
 
+
+# ===============================
+# ZONE SCORING v2
+# ===============================
 def score_zone(zone):
-    score = 0
+
+    score = 1  # base score
 
     if zone["has_sr"]:
         score += 2
@@ -80,111 +85,147 @@ def score_zone(zone):
     if zone["fresh"]:
         score += 1
 
-    if zone["multi_tf"]:
+    if zone["liquidity_sweep"]:
         score += 2
+
+    if zone["impulsive_move"]:
+        score += 2
+
+    if zone["volume_spike"]:
+        score += 1
 
     return score
 
+
 def classify_zone(score):
-    if score >= 6:
-        return "🔥 Major Institutional Zone"
-    elif score >= 4:
+    if score >= 7:
+        return "🔥 Institutional Zone"
+    elif score >= 5:
         return "⚡ Strong Reaction Zone"
-    elif score >= 2:
-        return "🟡 Moderate Zone"
+    elif score >= 3:
+        return "🟡 Tradable Zone"
     else:
         return "⚪ Weak Zone"
 
+
 def estimate_probability(score):
-    if score >= 6:
-        return "≈ 75% reaction probability"
-    elif score >= 4:
-        return "≈ 60% reaction probability"
-    elif score >= 2:
-        return "≈ 45% reaction probability"
-    else:
-        return "Low probability"
+    return min(90, score * 12)
 
-def detect_bias(supply_zones, demand_zones, rsi_now):
 
-    if not supply_zones and not demand_zones:
-        return "Neutral"
+# ===============================
+# LIQUIDITY SWEEP DETECTOR
+# ===============================
+def detect_liquidity_sweep(df):
+    last = df.iloc[-1]
+    prev = df.iloc[-2]
 
-    avg_supply = sum([z["score"] for z in supply_zones]) / len(supply_zones) if supply_zones else 0
-    avg_demand = sum([z["score"] for z in demand_zones]) / len(demand_zones) if demand_zones else 0
+    if last["Low"] < prev["Low"] and last["Close"] > prev["Low"]:
+        return True
 
-    # RSI confirmation logic
-    if avg_demand > avg_supply and rsi_now < 40:
-        return "🟢 Bullish Reversal Potential"
+    if last["High"] > prev["High"] and last["Close"] < prev["High"]:
+        return True
 
-    if avg_supply > avg_demand and rsi_now > 60:
-        return "🔴 Bearish Reversal Potential"
+    return False
 
-    if avg_demand > avg_supply:
+
+# ===============================
+# VOLUME SPIKE
+# ===============================
+def detect_volume_spike(df):
+    avg = df["Volume"].rolling(20).mean().iloc[-1]
+    last = df["Volume"].iloc[-1]
+    return last > avg * 1.8
+
+
+# ===============================
+# IMPULSE MOVE
+# ===============================
+def detect_impulse(df):
+    move = abs(df["Close"].iloc[-1] - df["Close"].iloc[-3])
+    base = df["Close"].iloc[-3]
+    return (move / base) > 0.03
+
+
+# ===============================
+# MARKET BIAS ENGINE
+# ===============================
+def detect_bias(supply_zones, demand_zones, rsi):
+
+    supply_score = sum(z["score"] for z in supply_zones)
+    demand_score = sum(z["score"] for z in demand_zones)
+
+    if demand_score > supply_score and rsi < 45:
+        return "🟢 Smart Money Long Bias"
+
+    if supply_score > demand_score and rsi > 55:
+        return "🔴 Smart Money Short Bias"
+
+    if demand_score > supply_score:
         return "🟢 Bullish Pressure"
 
-    if avg_supply > avg_demand:
+    if supply_score > demand_score:
         return "🔴 Bearish Pressure"
 
-    return "⚖️ Neutral / Wait Confirmation"
+    return "⚖️ Neutral"
 
-def liquidity_magnet(last_price, upper_fvg, lower_fvg):
-    if upper_fvg and last_price < upper_fvg[0]:
-        return "🎯 Price attracted to Upper FVG"
 
-    if lower_fvg and last_price > lower_fvg[1]:
-        return "🎯 Price attracted to Lower FVG"
+# ===============================
+# MERGE ZONES
+# ===============================
+def merge_zones(zones):
+    if not zones:
+        return []
 
-    return "No strong liquidity magnet"
+    zones = sorted(zones, key=lambda x: x[0])
+    merged = []
 
+    current_low, current_high = zones[0]
+
+    for low, high in zones[1:]:
+        if low <= current_high:
+            current_high = max(current_high, high)
+        else:
+            merged.append((current_low, current_high))
+            current_low, current_high = low, high
+
+    merged.append((current_low, current_high))
+    return merged
+
+
+# ===============================
+# TRADE PLAN BUILDER
+# ===============================
 def build_trade_plan(final_supply_zones, final_demand_zones,
                      upper_fvg, sup_zones, res_zones,
                      bias, probability):
 
-    best_demand = max(final_demand_zones, key=lambda z: z["score"], default=None)
+    if not final_demand_zones:
+        return "No demand zone available"
 
-    if not best_demand or best_demand["score"] < 2:
-        return (
-            "══════════════════\n"
-            "🎯 TRADE PLAN\n\n"
-            "Bias : ⚖️ Neutral / Wait Confirmation\n"
-            "Confidence : Low\n\n"
-            "No high-quality zone detected.\n"
-            "══════════════════\n"
-        )
+    best = max(final_demand_zones, key=lambda x: x["score"])
 
-    entry_low = int(best_demand["low"] // 10 * 10)
-    entry_high = int(best_demand["high"] // 10 * 10)
+    entry_low = int(best["low"] // 10 * 10)
+    entry_high = int(best["high"] // 10 * 10)
 
-    # Target 1 dari FVG
     if upper_fvg:
-        fvg_low, fvg_high = upper_fvg[0]
-        target1 = int((fvg_low + fvg_high) / 2)
+        target = int((upper_fvg[0][0] + upper_fvg[0][1]) / 2)
     else:
-        target1 = entry_high + 50
+        target = entry_high + 60
 
-    # Target 2 dari resistance
-    if res_zones:
-        target2 = int(res_zones[0][0])
-    else:
-        target2 = target1 + 50
+    invalid = int(entry_low * 0.97)
 
-    invalidation = int(entry_low * 0.98)
-
-    confidence = min(85, best_demand["score"] * 14)
+    confidence = min(90, best["score"] * 11)
 
     return (
         "══════════════════\n"
         "🎯 TRADE PLAN\n\n"
         f"Bias : {bias}\n"
         f"Confidence : {confidence}%\n\n"
-        f"📌 Entry Zone : {entry_low} - {entry_high}\n"
-        f"🎯 Target 1 : {target1}\n"
-        f"🎯 Target 2 : {target2}\n"
-        f"🛑 Invalidation : Below {invalidation}\n"
+        f"Entry : {entry_low} - {entry_high}\n"
+        f"Target : {target}\n"
+        f"Invalidation : {invalid}\n"
         "══════════════════\n"
     )
-
 # =========================================
 # MAIN COMMAND
 # =========================================
