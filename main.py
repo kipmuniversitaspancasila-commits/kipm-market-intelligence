@@ -115,31 +115,74 @@ async def chart(ctx, ticker: str):
         stoch_now = float(k.iloc[-1])
 
         # =========================
-        # SUPPORT RESIST
+        # SUPPORT RESISTANCE ZONE ENGINE (UPGRADE)
         # =========================
-        current_price = float(df["Close"].iloc[-1])
-        window = 5
-        swing_highs = []
-        swing_lows = []
-
-        for i in range(window, len(df) - window):
-            high_slice = df["High"].iloc[i - window:i + window]
-            low_slice = df["Low"].iloc[i - window:i + window]
-
-            if df["High"].iloc[i] == high_slice.max():
-                swing_highs.append(float(df["High"].iloc[i]))
-
-            if df["Low"].iloc[i] == low_slice.min():
-                swing_lows.append(float(df["Low"].iloc[i]))
-
-        supports = sorted([l for l in swing_lows if l < current_price], reverse=True)
-        resistances = sorted([h for h in swing_highs if h > current_price])
-
-        support1 = int(supports[0] // 10 * 10) if supports else "N/A"
-        support2 = int(supports[1] // 10 * 10) if len(supports) > 1 else "N/A"
-
-        resistance1 = int(resistances[0] // 10 * 10) if resistances else "N/A"
-        resistance2 = int(resistances[1] // 10 * 10) if len(resistances) > 1 else "N/A"
+        def calculate_sr_zones(df, current_price, window=7, tolerance=0.015):
+        
+            swing_highs = []
+            swing_lows = []
+        
+            # 1️⃣ Detect Swing
+            for i in range(window, len(df) - window):
+                high_slice = df["High"].iloc[i - window:i + window]
+                low_slice = df["Low"].iloc[i - window:i + window]
+        
+                if df["High"].iloc[i] == high_slice.max():
+                    swing_highs.append(float(df["High"].iloc[i]))
+        
+                if df["Low"].iloc[i] == low_slice.min():
+                    swing_lows.append(float(df["Low"].iloc[i]))
+        
+            # 2️⃣ Clustering Function
+            def cluster_levels(levels):
+                clusters = []
+                levels = sorted(levels)
+        
+                for level in levels:
+                    placed = False
+                    for cluster in clusters:
+                        if abs(level - np.mean(cluster)) / np.mean(cluster) <= tolerance:
+                            cluster.append(level)
+                            placed = True
+                            break
+                    if not placed:
+                        clusters.append([level])
+                return clusters
+        
+            high_clusters = cluster_levels(swing_highs)
+            low_clusters = cluster_levels(swing_lows)
+        
+            # 3️⃣ Convert to Zones + Strength Filter
+            resistance_zones = []
+            support_zones = []
+        
+            for cluster in high_clusters:
+                if len(cluster) >= 2:
+                    lower = min(cluster)
+                    upper = max(cluster)
+                    strength = len(cluster)
+                    resistance_zones.append((lower, upper, strength))
+        
+            for cluster in low_clusters:
+                if len(cluster) >= 2:
+                    lower = min(cluster)
+                    upper = max(cluster)
+                    strength = len(cluster)
+                    support_zones.append((lower, upper, strength))
+        
+            # 4️⃣ Sort by distance from current price
+            resistance_zones = sorted(
+                [z for z in resistance_zones if z[0] > current_price],
+                key=lambda x: x[0]
+            )
+        
+            support_zones = sorted(
+                [z for z in support_zones if z[1] < current_price],
+                key=lambda x: x[1],
+                reverse=True
+            )
+        
+            return resistance_zones[:2], support_zones[:2]
 
         # =============================
         # FUNDAMENTAL
@@ -298,7 +341,18 @@ Sell : {format_value(foreign_1m[1])}
 Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
 Avg Price : {foreign_1m[3]:,.0f}
 """
+res_zones, sup_zones = calculate_sr_zones(df, current_price)
 
+def format_zone(zone):
+    if zone:
+        return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
+    return "N/A"
+
+resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
+resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
+
+support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
+support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
             f"🟢 R1 : {resistance1}\n"
