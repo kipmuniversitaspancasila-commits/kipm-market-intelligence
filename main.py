@@ -845,9 +845,10 @@ async def chart(ctx, ticker: str):
             final_demand_zones,
             upper_fvg,
             sup_zones,
-            res_zones,    
+            res_zones,
             bias,
-            probability
+            probability,
+            last_price
         )
 
         for zone in final_supply_zones:
