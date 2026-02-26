@@ -535,6 +535,9 @@ async def chart(ctx, ticker: str):
         foreign_1w = foreign_engine(df.tail(5))
         foreign_1m = foreign_engine(df.tail(22))
 
+        # =========================================
+        # NUMBER FORMATTER
+        # =========================================
         def get_tick_size(price):
             if price < 200:
                 return 1
@@ -557,9 +560,7 @@ async def chart(ctx, ticker: str):
             tick = get_tick_size(price)
             return int(((price + tick - 1) // tick) * tick)
 
-        # =========================================
-        # NUMBER FORMATTER
-        # =========================================
+    
         def format_billions(v):
             v = float(v)
         
