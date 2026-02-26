@@ -23,7 +23,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"KIPM Market Intelligence v2 aktif sebagai {bot.user}")
 
-
 # ===============================
 # RSI
 # ===============================
