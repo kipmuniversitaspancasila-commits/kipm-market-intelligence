@@ -137,6 +137,57 @@ def liquidity_magnet(last_price, upper_fvg, lower_fvg):
 
     return "No strong liquidity magnet"
 
+def build_trade_plan(final_supply_zones, final_demand_zones,
+                     upper_fvg, supports, resistances,
+                     bias, probability):
+
+    # Cari demand terbaik
+    best_demand = max(final_demand_zones, key=lambda z: z["score"], default=None)
+
+    if not best_demand or best_demand["score"] < 3:
+        return (
+            "══════════════════\n"
+            "🎯 TRADE PLAN\n\n"
+            "Bias : ⚖️ Neutral / Wait Confirmation\n"
+            "Confidence : Low\n\n"
+            "No high-quality zone detected.\n"
+            "══════════════════\n"
+        )
+
+    entry_low = int(best_demand["low"])
+    entry_high = int(best_demand["high"])
+
+    # Target 1 = Upper FVG midpoint
+    if upper_fvg:
+        fvg_low, fvg_high = upper_fvg[0]
+        target1 = int((fvg_low + fvg_high) / 2)
+    else:
+        target1 = entry_high + 50
+
+    # Target 2 = resistance terdekat
+    if resistances:
+        target2 = int(resistances[0])
+    else:
+        target2 = target1 + 50
+
+    # Invalidation 2% below zone
+    invalidation = int(entry_low * 0.98)
+
+    # Confidence sederhana
+    confidence = min(85, best_demand["score"] * 12)
+
+    return (
+        "══════════════════\n"
+        "🎯 TRADE PLAN\n\n"
+        f"Bias : {bias}\n"
+        f"Confidence : {confidence}%\n\n"
+        f"📌 Entry Zone : {entry_low} - {entry_high}\n"
+        f"🎯 Target 1 : {target1}\n"
+        f"🎯 Target 2 : {target2}\n"
+        f"🛑 Invalidation : Below {invalidation}\n"
+        "══════════════════\n"
+    )
+
 # =========================================
 # MAIN COMMAND
 # =========================================
@@ -458,52 +509,49 @@ async def chart(ctx, ticker: str):
         # =============================
         # BANDARMOLOGY REPORT TEXT
         # =============================
-        report = f"""
 
-BANDARMOLOGY REPORT — {ticker.replace(".JK","")}
+report = (
+    "══════════════════\n"
+    "📊 BANDARMOLOGY REPORT\n\n"
 
-3 Hari Terakhir
+    f"Bandar 3D\n"
+    f"Buy : {format_billions(bandar3['buy'])} / "
+    f"Sell : {format_billions(bandar3['sell'])}\n"
+    f"🧭 Net : {format_billions(bandar3['net'])} "
+    f"({'Akumulasi' if bandar3['net'] > 0 else 'Distribusi'})\n"
+    f"Avg Price : {int(bandar3['avg_price'])}\n\n"
 
-Bandar
-Buy : {format_value(bandar_3d[0])}
-Sell : {format_value(bandar_3d[1])}
-Net : {format_value(bandar_3d[2])} ({bandar_3d[4]})
-Avg Price : {bandar_3d[3]:,.0f}
+    f"Bandar 1W\n"
+    f"Buy : {format_billions(bandar1w['buy'])} / "
+    f"Sell : {format_billions(bandar1w['sell'])}\n"
+    f"🧭 Net : {format_billions(bandar1w['net'])} "
+    f"({'Akumulasi' if bandar1w['net'] > 0 else 'Distribusi'})\n"
+    f"Avg Price : {int(bandar1w['avg_price'])}\n\n"
 
-Foreign
-Buy : {format_value(foreign_3d[0])}
-Sell : {format_value(foreign_3d[1])}
-Net : {format_value(foreign_3d[2])} ({foreign_3d[4]})
-Avg Price : {foreign_3d[3]:,.0f}
+    f"Bandar 1M\n"
+    f"Buy : {format_billions(bandar1m['buy'])} / "
+    f"Sell : {format_billions(bandar1m['sell'])}\n"
+    f"🧭 Net : {format_billions(bandar1m['net'])} "
+    f"({'Akumulasi' if bandar1m['net'] > 0 else 'Distribusi'})\n"
+    f"Avg Price : {int(bandar1m['avg_price'])}\n\n"
 
-1 Week Terakhir
+    "══════════════════\n"
+    "🌍 FOREIGN FLOW\n\n"
 
-Bandar
-Buy : {format_value(bandar_1w[0])}
-Sell : {format_value(bandar_1w[1])}
-Net : {format_value(bandar_1w[2])} ({bandar_1w[4]})
-Avg Price : {bandar_1w[3]:,.0f}
+    f"Foreign 3D\n"
+    f"Buy : {format_billions(foreign3['buy'])} / "
+    f"Sell : {format_billions(foreign3['sell'])}\n"
+    f"🧭 Net : {format_billions(foreign3['net'])} "
+    f"({'Akumulasi' if foreign3['net'] > 0 else 'Distribusi'})\n"
+    f"Avg Price : {int(foreign3['avg_price'])}\n\n"
 
-Foreign
-Buy : {format_value(foreign_1w[0])}
-Sell : {format_value(foreign_1w[1])}
-Net : {format_value(foreign_1w[2])} ({foreign_1w[4]})
-Avg Price : {foreign_1w[3]:,.0f}
-
-1 Month Terakhir
-
-Bandar
-Buy : {format_value(bandar_1m[0])}
-Sell : {format_value(bandar_1m[1])}
-Net : {format_value(bandar_1m[2])} ({bandar_1m[4]})
-Avg Price : {bandar_1m[3]:,.0f}
-
-Foreign
-Buy : {format_value(foreign_1m[0])}
-Sell : {format_value(foreign_1m[1])}
-Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
-Avg Price : {foreign_1m[3]:,.0f}
-"""
+    f"Foreign 1W\n"
+    f"Buy : {format_billions(foreign1w['buy'])} / "
+    f"Sell : {format_billions(foreign1w['sell'])}\n"
+    f"🧭 Net : {format_billions(foreign1w['net'])} "
+    f"({'Akumulasi' if foreign1w['net'] > 0 else 'Distribusi'})\n"
+    f"Avg Price : {int(foreign1w['avg_price'])}\n"
+)
 
         # =============================
         # SUPPORT RESISTANCE RESULT
@@ -622,6 +670,15 @@ Avg Price : {foreign_1m[3]:,.0f}
         # CONFLUENCE SUMMARY BUILDER
         # =========================================
         summary_text = "\n══════════════════\n🎯 CONFLUENCE SUMMARY\n\n"
+        trade_plan_text = build_trade_plan(
+            final_supply_zones,
+            final_demand_zones,
+            upper_fvg,
+            supports,
+            resistances,
+            bias,
+            probability
+        )
 
         for zone in final_supply_zones:
             summary_text += (
@@ -678,7 +735,7 @@ Avg Price : {foreign_1m[3]:,.0f}
             f"🏛️ Equity / Share : {equity_text}\n"
         
             f"{report}\n"
-            f"{summary_text}\n"
+            f"{trade_plan_text}\n"
             "#DYOR\n"
             "#DisclaimerOn\n"
             "by @marketnmocha"
