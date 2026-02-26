@@ -421,14 +421,25 @@ Avg Price : {foreign_1m[3]:,.0f}
         # =============================
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
+        
             f"🟢 R1 : {resistance1}\n"
             f"🟢 R2 : {resistance2}\n\n"
+        
             f"🔴 S1 : {support1}\n"
             f"🔴 S2 : {support2}\n\n"
+        
+            f"📦 Supply 1 : {supply1}\n"
+            f"📦 Supply 2 : {supply2}\n\n"
+        
+            f"📥 Demand 1 : {demand1}\n"
+            f"📥 Demand 2 : {demand2}\n\n"
+        
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
+        
             f"📚 PBV : {pbv_text}\n"
             f"🏛️ Equity / Share : {equity_text}\n"
+        
             f"{report}\n"
             "#DYOR\n"
             "#DisclaimerOn\n"
