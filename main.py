@@ -287,13 +287,13 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
     print("SUP:", sup_zones)
     print("DEMAND:", final_demand_zones)
     # =============================
-    # STOPLOSS ENGINE FINAL
+    # STOPLOSS ENGINE (FIX FINAL)
     # =============================
     
     invalidation = None
     valid_support = None
     
-    # cari support terdekat di bawah entry
+    # Cari support terdekat di bawah entry
     if sup_zones:
         for s in sup_zones:
             support_price = s[0]
@@ -301,20 +301,27 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
                 valid_support = support_price
                 break
     
+    # Prioritas 1: Support structure
     if valid_support is not None:
         invalidation = valid_support
     
-    elif best_demand is not None:
+    # Prioritas 2: Demand zone
+    elif best_demand:
         invalidation = best_demand["low"] * 0.995
     
+    # Prioritas 3: fallback
     else:
         invalidation = entry_low * 0.985
     
     
-    # rounding tick BEI
+    # Pastikan selalu ada nilai
+    if invalidation is None:
+        invalidation = entry_low * 0.985
+    
+    # Apply tick rounding BEI
     invalidation = round_down(invalidation)
     
-    # safety guard
+    # Safety agar tidak di atas entry
     if invalidation >= entry_low:
         invalidation = round_down(entry_low * 0.985)
 
