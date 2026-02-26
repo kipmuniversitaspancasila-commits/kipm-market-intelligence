@@ -716,9 +716,7 @@ async def chart(ctx, ticker: str):
             "══════════════════\n"
         )
 
-        format_billions(bandar_3d[0])
-        format_billions(bandar_3d[1])
-        format_billions(bandar_3d[2])  
+
         # =============================
         # FINAL CAPTION
         # =============================
