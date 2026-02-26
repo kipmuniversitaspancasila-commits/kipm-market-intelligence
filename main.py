@@ -6,6 +6,9 @@ import mplfinance as mpf
 import numpy as np
 import os
 
+# =========================================
+# CONFIG
+# =========================================
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
@@ -19,9 +22,11 @@ async def on_ready():
     print(f"Bot aktif sebagai {bot.user}")
 
 
-# =============================
-# RSI
-# =============================
+# =========================================
+# INDICATORS
+# =========================================
+
+# ---------------- RSI ----------------
 def calculate_rsi(series, period=14):
     delta = series.diff()
     gain = delta.clip(lower=0)
@@ -32,21 +37,17 @@ def calculate_rsi(series, period=14):
     return 100 - (100 / (1 + rs))
 
 
-# =============================
-# STOCHASTIC 8,3,3
-# =============================
+# ---------------- STOCHASTIC 8,3,3 ----------------
 def calculate_stochastic(df, k_period=8, d_period=3, smooth=3):
-    low_min = df['Low'].rolling(window=k_period).min()
-    high_max = df['High'].rolling(window=k_period).max()
-    k = 100 * ((df['Close'] - low_min) / (high_max - low_min))
+    low_min = df["Low"].rolling(window=k_period).min()
+    high_max = df["High"].rolling(window=k_period).max()
+    k = 100 * ((df["Close"] - low_min) / (high_max - low_min))
     k_smooth = k.rolling(window=smooth).mean()
     d = k_smooth.rolling(window=d_period).mean()
     return k_smooth, d
 
 
-# =============================
-# FREQUENCY ANALYZER
-# =============================
+# ---------------- FREQUENCY ANALYZER ----------------
 def calculate_frequency_series(df, bins=25):
 
     df = df.copy()
@@ -68,10 +69,17 @@ def calculate_frequency_series(df, bins=25):
     return freq_series
 
 
+# =========================================
+# MAIN COMMAND
+# =========================================
 @bot.command()
 async def chart(ctx, ticker: str):
 
     try:
+
+        # =========================================
+        # PREPARE DATA
+        # =========================================
         ticker = ticker.upper()
         if ".JK" not in ticker:
             ticker += ".JK"
@@ -90,9 +98,9 @@ async def chart(ctx, ticker: str):
         last_price = df["Close"].iloc[-1]
         last_price_text = f"{float(last_price):,.0f}"
 
-        # =========================
+        # =========================================
         # FREQUENCY
-        # =========================
+        # =========================================
         if last_price < 2000:
             bins = 20
         elif last_price < 5000:
@@ -102,42 +110,40 @@ async def chart(ctx, ticker: str):
 
         freq_series = calculate_frequency_series(df, bins=bins)
 
-        # =========================
+        # =========================================
         # RSI
-        # =========================
+        # =========================================
         df["RSI"] = calculate_rsi(df["Close"])
         rsi_now = float(df["RSI"].iloc[-1])
 
-        # =========================
+        # =========================================
         # STOCHASTIC
-        # =========================
+        # =========================================
         k, d = calculate_stochastic(df)
         stoch_now = float(k.iloc[-1])
 
-        # =========================
-        # SUPPORT RESISTANCE ZONE ENGINE (UPGRADE)
-        # =========================
+        # =========================================
+        # SUPPORT RESISTANCE ENGINE
+        # =========================================
         def calculate_sr_zones(df, current_price, window=7, tolerance=0.015):
-        
+
             swing_highs = []
             swing_lows = []
-        
-            # 1️⃣ Detect Swing
+
             for i in range(window, len(df) - window):
                 high_slice = df["High"].iloc[i - window:i + window]
                 low_slice = df["Low"].iloc[i - window:i + window]
-        
+
                 if df["High"].iloc[i] == high_slice.max():
                     swing_highs.append(float(df["High"].iloc[i]))
-        
+
                 if df["Low"].iloc[i] == low_slice.min():
                     swing_lows.append(float(df["Low"].iloc[i]))
-        
-            # 2️⃣ Clustering Function
+
             def cluster_levels(levels):
                 clusters = []
                 levels = sorted(levels)
-        
+
                 for level in levels:
                     placed = False
                     for cluster in clusters:
@@ -147,89 +153,78 @@ async def chart(ctx, ticker: str):
                             break
                     if not placed:
                         clusters.append([level])
+
                 return clusters
-        
+
             high_clusters = cluster_levels(swing_highs)
             low_clusters = cluster_levels(swing_lows)
-        
-            # 3️⃣ Convert to Zones + Strength Filter
+
             resistance_zones = []
             support_zones = []
-        
+
             for cluster in high_clusters:
                 if len(cluster) >= 2:
-                    lower = min(cluster)
-                    upper = max(cluster)
-                    strength = len(cluster)
-                    resistance_zones.append((lower, upper, strength))
-        
+                    resistance_zones.append(
+                        (min(cluster), max(cluster), len(cluster))
+                    )
+
             for cluster in low_clusters:
                 if len(cluster) >= 2:
-                    lower = min(cluster)
-                    upper = max(cluster)
-                    strength = len(cluster)
-                    support_zones.append((lower, upper, strength))
-        
-            # 4️⃣ Sort by distance from current price
+                    support_zones.append(
+                        (min(cluster), max(cluster), len(cluster))
+                    )
+
             resistance_zones = sorted(
                 [z for z in resistance_zones if z[0] > current_price],
                 key=lambda x: x[0]
             )
-        
+
             support_zones = sorted(
                 [z for z in support_zones if z[1] < current_price],
                 key=lambda x: x[1],
                 reverse=True
             )
-        
+
             return resistance_zones[:2], support_zones[:2]
 
-        # =========================
+        # =========================================
         # SUPPLY DEMAND ENGINE
-        # =========================
+        # =========================================
         def calculate_supply_demand(df, current_price, impulse_threshold=0.03):
-        
+
             supply_zones = []
             demand_zones = []
-        
-            for i in range(2, len(df)-3):
-        
+
+            for i in range(2, len(df) - 3):
+
                 base_candle = df.iloc[i]
-                future = df.iloc[i+1:i+4]
-        
-                # Calculate impulse %
+                future = df.iloc[i + 1:i + 4]
+
                 up_move = (future["High"].max() - base_candle["Close"]) / base_candle["Close"]
                 down_move = (base_candle["Close"] - future["Low"].min()) / base_candle["Close"]
-        
-                # Demand Zone (bullish impulse)
+
                 if up_move >= impulse_threshold:
-                    lower = base_candle["Low"]
-                    upper = base_candle["Open"]
-                    demand_zones.append((lower, upper))
-        
-                # Supply Zone (bearish impulse)
+                    demand_zones.append((base_candle["Low"], base_candle["Open"]))
+
                 if down_move >= impulse_threshold:
-                    lower = base_candle["Open"]
-                    upper = base_candle["High"]
-                    supply_zones.append((lower, upper))
-        
-            # Sort zones
+                    supply_zones.append((base_candle["Open"], base_candle["High"]))
+
             supply_zones = sorted(
                 [z for z in supply_zones if z[0] > current_price],
                 key=lambda x: x[0]
             )
-        
+
             demand_zones = sorted(
                 [z for z in demand_zones if z[1] < current_price],
                 key=lambda x: x[1],
                 reverse=True
             )
-        
+
             return supply_zones[:2], demand_zones[:2]
 
-        # =============================
+        # =========================================
         # FUNDAMENTAL
-        # =============================
+        # =========================================
         stock = yf.Ticker(ticker)
         info = stock.info
 
@@ -239,10 +234,9 @@ async def chart(ctx, ticker: str):
         pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
         equity_text = f"{float(equity):.2f}" if equity else "N/A"
 
-        # =====================================================
-        # BANDARMOLOGY ENGINE (INI YANG DIPERBAIKI & DITAMBAHKAN)
-        # =====================================================
-
+        # =========================================
+        # BANDARMOLOGY ENGINE
+        # =========================================
         def format_value(v):
             if v >= 1_000_000_000_000:
                 return f"{v/1_000_000_000_000:.2f} T"
@@ -254,25 +248,19 @@ async def chart(ctx, ticker: str):
                 return f"{v:.0f}"
 
         def bandar_engine(data):
-
             buy = (data["Close"] * data["Volume"]).sum()
             sell = buy * 0.88
             net = buy - sell
             avg = buy / data["Volume"].sum()
-
             status = "Akumulasi" if net > 0 else "Distribusi"
-
             return buy, sell, net, avg, status
 
         def foreign_engine(data):
-
             foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
             foreign_sell = foreign_buy * 1.05
             net = foreign_buy - foreign_sell
             avg = foreign_buy / data["Volume"].sum()
-
             status = "Akumulasi" if net > 0 else "Distribusi"
-
             return foreign_buy, foreign_sell, net, avg, status
 
         bandar_3d = bandar_engine(df.tail(3))
