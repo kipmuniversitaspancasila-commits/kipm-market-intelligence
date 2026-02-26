@@ -670,7 +670,10 @@ async def chart(ctx, ticker: str):
                 "has_sr": False,
                 "has_fvg": False,
                 "fresh": True,
-                "multi_tf": False
+                "multi_tf": False,
+                "liquidity_sweep": detect_liquidity_sweep(df),
+                "impulsive_move": detect_impulse(df),
+                "volume_spike": detect_volume_spike(df)
             }
 
             zone["score"] = score_zone(zone)
@@ -689,9 +692,11 @@ async def chart(ctx, ticker: str):
                 "has_sr": has_sr,
                 "has_fvg": has_fvg,
                 "fresh": True,
-                "multi_tf": False
+                "multi_tf": False,
+                "liquidity_sweep": detect_liquidity_sweep(df),
+                "impulsive_move": detect_impulse(df),
+                "volume_spike": detect_volume_spike(df)
             }
-
             zone["score"] = score_zone(zone)
             zone["label"] = classify_zone(zone["score"])
             final_demand_zones.append(zone)
