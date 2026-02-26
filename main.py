@@ -637,12 +637,16 @@ async def chart(ctx, ticker: str):
             final_supply_zones.append(zone)
 
         for low, high in merged_demand:
+        
+            has_sr = any(low <= r[0] <= high for r in res_zones)
+            has_fvg = any(low <= fvg[0] <= high for fvg in lower_fvg)
+        
             zone = {
                 "low": low,
                 "high": high,
                 "type": "demand",
-                "has_sr": False,
-                "has_fvg": False,
+                "has_sr": has_sr,
+                "has_fvg": has_fvg,
                 "fresh": True,
                 "multi_tf": False
             }
@@ -682,6 +686,13 @@ async def chart(ctx, ticker: str):
         # CONFLUENCE SUMMARY BUILDER
         # =========================================
         summary_text = "\n══════════════════\n🎯 CONFLUENCE SUMMARY\n\n"
+        # DEBUG CHECK DATA
+        print("Demand:", final_demand_zones)
+        print("Supply:", final_supply_zones)
+        print("Supports:", supports)
+        print("Resistances:", resistances)
+        print("FVG:", upper_fvg)
+                
         trade_plan_text = build_trade_plan(
             final_supply_zones,
             final_demand_zones,
