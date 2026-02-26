@@ -168,6 +168,20 @@ def detect_bias(supply_zones, demand_zones, rsi):
 
     return "⚖️ Neutral"
 
+def liquidity_magnet(last_price, upper_fvg, lower_fvg):
+
+    if upper_fvg:
+        fvg_low, fvg_high = upper_fvg
+        if last_price < fvg_low:
+            return "🎯 Price attracted to Upper FVG"
+
+    if lower_fvg:
+        fvg_low, fvg_high = lower_fvg
+        if last_price > fvg_high:
+            return "🎯 Price attracted to Lower FVG"
+
+    return "No strong liquidity magnet"
+
 
 # ===============================
 # MERGE ZONES
