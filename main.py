@@ -74,55 +74,6 @@ def round_level(value):
 
 
 # =============================
-# BANDAR FLOW
-# =============================
-def calculate_money_flow_detail(df):
-    typical_price = (df['High'] + df['Low'] + df['Close']) / 3
-    money_flow = typical_price * df['Volume']
-
-    positive_flow = []
-    negative_flow = []
-
-    for i in range(1, len(df)):
-        if typical_price.iloc[i] > typical_price.iloc[i - 1]:
-            positive_flow.append(money_flow.iloc[i])
-            negative_flow.append(0)
-        else:
-            positive_flow.append(0)
-            negative_flow.append(money_flow.iloc[i])
-
-    positive_mf = pd.Series(positive_flow).sum()
-    negative_mf = pd.Series(negative_flow).sum()
-
-    net_flow = positive_mf - negative_mf
-    total_flow = positive_mf + negative_mf
-
-    strength = 0
-    if total_flow != 0:
-        strength = abs(net_flow) / total_flow * 100
-
-    return net_flow, strength
-
-
-def flow_interpretation(net_flow, strength):
-    if net_flow > 0:
-        direction = "Accumulation 🟢"
-    elif net_flow < 0:
-        direction = "Distribution 🔴"
-    else:
-        direction = "Neutral"
-
-    if strength > 70:
-        level = "Strong"
-    elif strength > 40:
-        level = "Moderate"
-    else:
-        level = "Weak"
-
-    return direction, level
-
-
-# =============================
 # FREQUENCY ANALYZER (PRICE DISTRIBUTION)
 # =============================
 def calculate_frequency_series(df, bins=25):
