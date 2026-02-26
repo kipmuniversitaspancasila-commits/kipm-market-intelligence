@@ -292,7 +292,7 @@ async def chart(ctx, ticker: str):
 
         fig.savefig(file_path)
 
-        # =============================
+   # =============================
         # BANDARMOLOGY REPORT TEXT
         # =============================
         report = f"""
@@ -341,18 +341,28 @@ Sell : {format_value(foreign_1m[1])}
 Net : {format_value(foreign_1m[2])} ({foreign_1m[4]})
 Avg Price : {foreign_1m[3]:,.0f}
 """
-res_zones, sup_zones = calculate_sr_zones(df, current_price)
 
-def format_zone(zone):
-    if zone:
-        return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
-    return "N/A"
+        # =============================
+        # SUPPORT RESISTANCE RESULT
+        # =============================
+        current_price = float(last_price)
 
-resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
-resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
+        res_zones, sup_zones = calculate_sr_zones(df, current_price)
 
-support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
-support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
+        def format_zone(zone):
+            if zone:
+                return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
+            return "N/A"
+
+        resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
+        resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
+
+        support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
+        support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
+
+        # =============================
+        # FINAL CAPTION
+        # =============================
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
             f"🟢 R1 : {resistance1}\n"
