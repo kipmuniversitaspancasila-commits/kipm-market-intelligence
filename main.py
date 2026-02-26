@@ -138,7 +138,7 @@ def liquidity_magnet(last_price, upper_fvg, lower_fvg):
     return "No strong liquidity magnet"
 
 def build_trade_plan(final_supply_zones, final_demand_zones,
-                     upper_fvg, supports, resistances,
+                     upper_fvg, sup_zones, res_zones,
                      bias, probability):
 
     # Cari demand terbaik
@@ -689,8 +689,8 @@ async def chart(ctx, ticker: str):
             final_supply_zones,
             final_demand_zones,
             upper_fvg,
-            supports,
-            resistances,
+            sup_zones,
+            res_zones,    
             bias,
             probability
         )
