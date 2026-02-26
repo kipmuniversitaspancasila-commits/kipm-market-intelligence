@@ -535,6 +535,28 @@ async def chart(ctx, ticker: str):
         foreign_1w = foreign_engine(df.tail(5))
         foreign_1m = foreign_engine(df.tail(22))
 
+        def get_tick_size(price):
+            if price < 200:
+                return 1
+            elif price < 500:
+                return 2
+            elif price < 2000:
+                return 5
+            elif price < 5000:
+                return 10
+            else:
+                return 25
+        
+        
+        def round_down(price):
+            tick = get_tick_size(price)
+            return int((price // tick) * tick)
+        
+        
+        def round_up(price):
+            tick = get_tick_size(price)
+            return int(((price + tick - 1) // tick) * tick)
+
         # =========================================
         # NUMBER FORMATTER
         # =========================================
@@ -680,7 +702,7 @@ async def chart(ctx, ticker: str):
 
         def format_zone(zone):
             if zone:
-                return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)} (x{zone[2]})"
+                return f"{round_down(zone[0])} - {round_down(zone[1])} (x{zone[2]})"
             return "N/A"
 
         resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
@@ -693,7 +715,7 @@ async def chart(ctx, ticker: str):
         def format_simple_zone(zone):
             if not zone:
                 return "N/A"
-            return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)}"
+            return f"{round_down(zone[0])} - {round_down(zone[1])}"
             
         supply1 = format_simple_zone(supply_zones[0]) if len(supply_zones)>0 else "N/A"
         supply2 = format_simple_zone(supply_zones[1]) if len(supply_zones)>1 else "N/A"
@@ -704,7 +726,7 @@ async def chart(ctx, ticker: str):
         def format_fvg(zone):
             if not zone:
                 return "N/A"
-            return f"{int(zone[0]//10*10)} - {int(zone[1]//10*10)}"
+            return f"{round_down(zone[0])} - {round_down(zone[1])}"
         
         upper_fvg1 = format_fvg(upper_fvg[0]) if len(upper_fvg)>0 else "N/A"
         upper_fvg2 = format_fvg(upper_fvg[1]) if len(upper_fvg)>1 else "N/A"
