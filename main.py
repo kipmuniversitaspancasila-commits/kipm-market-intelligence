@@ -343,25 +343,37 @@ async def chart(ctx, ticker: str):
             equity_text = "N/A"
 
         # =========================
-        # BANDARMOLOGY (SIMPLE FLOW)
+        # BANDARMOLOGY ENGINE
         # =========================
-        def flow_check(days):
-            data = df.tail(days)
-
-            if len(data) < 2:
-                return "Neutral"
-
-            first = float(data["Close"].iloc[0])
-            last = float(data["Close"].iloc[-1])
-
-            if last > first:
-                return "Akumulasi"
+        def bandarmology_period(data):
+        
+            buy_value = (data["Close"] * data["Volume"]).sum()
+            sell_value = buy_value * 0.5  # sementara estimasi (karena data broker real tidak ada di yfinance)
+        
+            net = buy_value - sell_value
+        
+            if net > 0:
+                status = "Akumulasi"
             else:
-                return "Distribusi"
-
-        flow3 = flow_check(3)
-        flow7 = flow_check(7)
-        flow30 = flow_check(22)
+                status = "Distribusi"
+        
+            avg_price = buy_value / data["Volume"].sum()
+        
+            return buy_value, sell_value, net, avg_price, status
+        
+        
+        def format_value(v):
+            if v >= 1_000_000_000_000:
+                return f"{v/1_000_000_000_000:.2f} T"
+            elif v >= 1_000_000_000:
+                return f"{v/1_000_000_000:.2f} B"
+            elif v >= 1_000_000:
+                return f"{v/1_000_000:.2f} M"
+            else:
+                return f"{v:.0f}"
+            bandar3 = bandarmology_period(df.tail(3))
+            bandar1m = bandarmology_period(df.tail(22))
+            bandar3m = bandarmology_period(df.tail(66))
 
         # =========================
         # STYLE (NO GRID FIXED)
@@ -436,18 +448,33 @@ async def chart(ctx, ticker: str):
         # CAPTION
         # =========================
         caption = (f"💰 Last Price : {last_price_text}\n\n"
-                   f"🟢 Support 1 (Weekly) : {support1}\n"
-                   f"🟢 Support 2 (Monthly): {support2}\n\n"
-                   f"🔴 Resistance 1 (Weekly) : {resistance1}\n"
-                   f"🔴 Resistance 2 (Monthly): {resistance2}\n\n"
+                   f"🟢 R1 : {resistance1}\n"
+                   f"🟢 R2 : {resistance2}\n\n"
+                   f"🔴 S1 : {support1}\n"
+                   f"🔴 S2 : {support2}\n\n"
                    f"📈 RSI : {rsi_now:.2f}\n"
                    f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
                    f"📚 PBV : {pbv_text}\n"
                    f"🏛️ Equity / Share : {equity_text}\n\n"
-                   f"🏦 Bandarmology\n"
-                   f"• 3 Hari  : {flow3}\n"
-                   f"• 1 Minggu: {flow7}\n"
-                   f"• 1 Bulan : {flow30}\n\n"
+                   🏦 Bandarmology
+                    
+                   3 Hari Terakhir
+                   Buy : {format_value(bandar3[0])}
+                   Sell: {format_value(bandar3[1])}
+                   Net : {format_value(bandar3[2])} ({bandar3[4]})
+                   Avg : {bandar3[3]:.0f}
+                    
+                   1 Bulan Terakhir
+                   Buy : {format_value(bandar1m[0])}
+                   Sell: {format_value(bandar1m[1])}
+                   Net : {format_value(bandar1m[2])} ({bandar1m[4]})
+                   Avg : {bandar1m[3]:.0f}
+                    
+                   3 Bulan Terakhir
+                   Buy : {format_value(bandar3m[0])}
+                   Sell: {format_value(bandar3m[1])}
+                   Net : {format_value(bandar3m[2])} ({bandar3m[4]})
+                   Avg : {bandar3m[3]:.0f}
                    "#DYOR\n"
                    "#DisclaimerOn\n"
                    "by @marketnmocha")
