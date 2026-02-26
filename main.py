@@ -261,10 +261,31 @@ async def chart(ctx, ticker: str):
             )
         
             return upper_fvg[:2], lower_fvg[:2]
+            
+        # =========================================
+        # ZONE MERGE FUNCTION
+        # =========================================
+        
+        def merge_zones(zones):
+            if not zones:
+                return []
+        
+            zones = sorted(zones, key=lambda x: x[0])
+            merged = []
+        
+            current_low, current_high = zones[0]
+        
+            for low, high in zones[1:]:
+                if low <= current_high:  # overlap
+                    current_high = max(current_high, high)
+                else:
+                    merged.append((current_low, current_high))
+                    current_low, current_high = low, high
+        
+            merged.append((current_low, current_high))
+            return merged
+        
 
-
-
-    
         # =========================================
         # FUNDAMENTAL
         # =========================================
@@ -366,7 +387,7 @@ async def chart(ctx, ticker: str):
 
         fig.savefig(file_path)
 
-   # =============================
+        # =============================
         # BANDARMOLOGY REPORT TEXT
         # =============================
         report = f"""
@@ -462,20 +483,16 @@ Avg Price : {foreign_1m[3]:,.0f}
         # =========================================
         # SUPPLY & DEMAND MERGE ENGINE
         # =========================================
-        
-        # Merge raw supply & demand zones
         merged_supply = merge_zones(supply_zones)
         merged_demand = merge_zones(demand_zones)
 
 
         # =========================================
-        # ZONE SCORING ENGINE
+        # BUILD & SCORE ZONES
         # =========================================
-        
         final_supply_zones = []
         final_demand_zones = []
 
-        # Build & score supply zones
         for low, high in merged_supply:
             zone = {
                 "low": low,
@@ -491,7 +508,6 @@ Avg Price : {foreign_1m[3]:,.0f}
             zone["label"] = classify_zone(zone["score"])
             final_supply_zones.append(zone)
 
-        # Build & score demand zones
         for low, high in merged_demand:
             zone = {
                 "low": low,
@@ -509,9 +525,8 @@ Avg Price : {foreign_1m[3]:,.0f}
 
 
         # =========================================
-        # MARKET BIAS & PROBABILITY ENGINE
+        # MARKET BIAS & PROBABILITY
         # =========================================
-        
         bias = detect_bias(final_supply_zones, final_demand_zones, rsi_now)
 
         best_zone_score = max(
@@ -521,29 +536,35 @@ Avg Price : {foreign_1m[3]:,.0f}
 
         probability = estimate_probability(best_zone_score)
 
+
+        # =========================================
+        # LIQUIDITY MAGNET
+        # =========================================
+        upper_fvg_tuple = upper_fvg[0] if len(upper_fvg) > 0 else None
+        lower_fvg_tuple = lower_fvg[0] if len(lower_fvg) > 0 else None
+
         magnet = liquidity_magnet(
-            float(last_price_text.replace(",", "")),
-            upper_fvg1_tuple,
-            lower_fvg1_tuple
+            float(last_price),
+            upper_fvg_tuple,
+            lower_fvg_tuple
         )
 
 
         # =========================================
         # CONFLUENCE SUMMARY BUILDER
         # =========================================
-        
         summary_text = "\n══════════════════\n🎯 CONFLUENCE SUMMARY\n\n"
 
         for zone in final_supply_zones:
             summary_text += (
-                f"📦 {zone['low']} - {zone['high']} "
+                f"📦 {int(zone['low']//10*10)} - {int(zone['high']//10*10)} "
                 f"(Score: {zone['score']})\n"
                 f"{zone['label']}\n\n"
             )
 
         for zone in final_demand_zones:
             summary_text += (
-                f"📥 {zone['low']} - {zone['high']} "
+                f"📥 {int(zone['low']//10*10)} - {int(zone['high']//10*10)} "
                 f"(Score: {zone['score']})\n"
                 f"{zone['label']}\n\n"
             )
@@ -555,6 +576,63 @@ Avg Price : {foreign_1m[3]:,.0f}
             "══════════════════\n"
         )
 
+        def score_zone(zone):
+            score = 0
+            
+            if zone["type"] in ["supply", "demand"]:
+                score += 2
+            if zone.get("has_sr", False):
+                score += 2
+            if zone.get("has_fvg", False):
+                score += 1
+            if zone.get("fresh", False):
+                score += 1
+            if zone.get("multi_tf", False):
+                score += 2
+        
+            return score
+        
+        
+        def classify_zone(score):
+            if score >= 6:
+                return "🔥 Major Institutional Zone"
+            elif score >= 4:
+                return "⚡ Strong Reaction Zone"
+            else:
+                return "Minor Zone"
+
+        def detect_bias(supply_zones, demand_zones, rsi_value):
+            supply_score = max([z["score"] for z in supply_zones], default=0)
+            demand_score = max([z["score"] for z in demand_zones], default=0)
+        
+            if demand_score > supply_score and rsi_value < 30:
+                return "🟢 Bullish Reversal Potential"
+        
+            elif supply_score > demand_score and rsi_value > 70:
+                return "🔴 Bearish Rejection Potential"
+        
+            else:
+                return "⚖️ Neutral / Wait Confirmation"
+        
+        
+        def liquidity_magnet(last_price, upper_fvg, lower_fvg):
+            if upper_fvg and last_price < upper_fvg[0]:
+                return "🎯 Price attracted to Upper FVG"
+        
+            if lower_fvg and last_price > lower_fvg[1]:
+                return "🎯 Price attracted to Lower FVG"
+        
+            return "No strong liquidity magnet"
+        
+        
+        def estimate_probability(score):
+            if score >= 6:
+                return "≈ 70% reaction probability"
+            elif score >= 4:
+                return "≈ 55% reaction probability"
+            else:
+                return "≈ 40% probability"
+                
         # =============================
         # FINAL CAPTION
         # =============================
@@ -588,6 +666,7 @@ Avg Price : {foreign_1m[3]:,.0f}
             f"🏛️ Equity / Share : {equity_text}\n"
         
             f"{report}\n"
+            f"{summary_text}\n"
             "#DYOR\n"
             "#DisclaimerOn\n"
             "by @marketnmocha"
