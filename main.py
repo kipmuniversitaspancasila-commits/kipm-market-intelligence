@@ -254,42 +254,8 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
 
     zone_range = entry_high - entry_low
 
-    # =================================
-    # TARGET ENGINE SMART
-    # =================================
-    
-    zone_range = entry_high - entry_low
-    risk = entry_high - invalidation
-    
-    min_target_distance = risk * 2.5
-    
-    target1 = entry_high + max(zone_range * 2, min_target_distance)
-    
-    target2 = entry_high + max(zone_range * 4, risk * 4)
-    
-    # resistance override (hanya jika lebih jauh)
-    if res_zones:
-        resistance_price = int(res_zones[0][0])
-        if resistance_price > target1:
-            target2 = max(target2, resistance_price)
-    
-    # FVG override (hanya jika jauh)
-    if upper_fvg:
-        fvg_low, fvg_high = upper_fvg[0]
-        if fvg_low > target1:
-            target2 = max(target2, int(fvg_low))
-    
-    # rounding sesuai fraksi IDX
-    target1 = round_up(target1)
-    target2 = round_up(target2)
-
-    print("ENTRY:", entry_low, entry_high)
-    print("SUP:", sup_zones)
-    print("DEMAND:", final_demand_zones)
-
-
     # =============================
-    # STOPLOSS ENGINE (HARUS DI ATAS)
+    # STOPLOSS ENGINE 
     # =============================
     invalidation = None
     valid_support = None
@@ -317,6 +283,38 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
         invalidation = round_down(entry_low * 0.985)
 
     confidence = min(85, best_demand["score"] * 14)
+    # =================================
+    # TARGET ENGINE SMART
+    # =================================
+    
+    zone_range = entry_high - entry_low
+    risk = entry_high - invalidation
+    
+    min_target_distance = risk * 2.5
+    
+    target1 = entry_high + max(zone_range * 2, min_target_distance)
+    
+    target2 = entry_high + max(zone_range * 4, risk * 4)
+    
+    # resistance override (hanya jika lebih jauh)
+    if res_zones:
+        if res_zones and len(res_zones) > 0:
+        if resistance_price > target1:
+            target2 = max(target2, resistance_price)
+    
+    # FVG override (hanya jika jauh)
+    if upper_fvg:
+        fvg_low, fvg_high = upper_fvg[0]
+        if fvg_low > target1:
+            target2 = max(target2, int(fvg_low))
+    
+    # rounding sesuai fraksi IDX
+    target1 = round_up(target1)
+    target2 = round_up(target2)
+
+    print("ENTRY:", entry_low, entry_high)
+    print("SUP:", sup_zones)
+    print("DEMAND:", final_demand_zones)
 
     return (
         "══════════════════\n"
