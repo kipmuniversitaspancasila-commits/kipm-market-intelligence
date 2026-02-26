@@ -212,7 +212,7 @@ def round_up(price):
 # ===============================
 def build_trade_plan(final_supply_zones, final_demand_zones,
                      upper_fvg, sup_zones, res_zones,
-                     bias, probability):
+                     bias, probability, last_price):
 
     best_demand = max(final_demand_zones, key=lambda z: z["score"], default=None)
 
