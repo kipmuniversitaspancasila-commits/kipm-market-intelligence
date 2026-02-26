@@ -456,25 +456,12 @@ async def chart(ctx, ticker: str):
                    f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
                    f"📚 PBV : {pbv_text}\n"
                    f"🏛️ Equity / Share : {equity_text}\n\n"
-                   🏦 Bandarmology
-                    
-                   3 Hari Terakhir
-                   Buy : {format_value(bandar3[0])}
-                   Sell: {format_value(bandar3[1])}
-                   Net : {format_value(bandar3[2])} ({bandar3[4]})
-                   Avg : {bandar3[3]:.0f}
-                    
-                   1 Bulan Terakhir
-                   Buy : {format_value(bandar1m[0])}
-                   Sell: {format_value(bandar1m[1])}
-                   Net : {format_value(bandar1m[2])} ({bandar1m[4]})
-                   Avg : {bandar1m[3]:.0f}
-                    
-                   3 Bulan Terakhir
-                   Buy : {format_value(bandar3m[0])}
-                   Sell: {format_value(bandar3m[1])}
-                   Net : {format_value(bandar3m[2])} ({bandar3m[4]})
-                   Avg : {bandar3m[3]:.0f}
+                   f"🏦 Bandarmology\n"
+                   f"3 Hari Terakhir\n"
+                   f"Buy : {format_value(bandar3[0])}\n"
+                   f"Sell: {format_value(bandar3[1])}\n"
+                   f"Net : {format_value(bandar3[2])} ({bandar3[4]})\n"
+                   f"Avg : {bandar3[3]:.0f}\n\n"
                    "#DYOR\n"
                    "#DisclaimerOn\n"
                    "by @marketnmocha")
