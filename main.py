@@ -563,13 +563,57 @@ async def chart(ctx, ticker: str):
             status = "Akumulasi" if net > 0 else "Distribusi"
             return foreign_buy, foreign_sell, net, avg, status
 
-        bandar_3d = bandar_engine(df.tail(3))
-        bandar_1w = bandar_engine(df.tail(5))
-        bandar_1m = bandar_engine(df.tail(22))
-
-        foreign_3d = foreign_engine(df.tail(3))
-        foreign_1w = foreign_engine(df.tail(5))
-        foreign_1m = foreign_engine(df.tail(22))
+        # ===============================
+        # 1️⃣ DOWNLOAD DATA
+        # ===============================
+        df = yf.download(symbol, period="6mo", interval="1d")
+    
+        if df.empty:
+            await ctx.send("Data tidak ditemukan")
+            return
+    
+        # ===============================
+        # 2️⃣ BANDAR ENGINE
+        # ===============================
+        bandar_1w = bandar_engine(df.tail(min(len(df), 5)))
+        bandar_1m = bandar_engine(df.tail(min(len(df), 22)))
+        bandar_3m = bandar_engine(df.tail(min(len(df), 66)))
+    
+        # BANDAR UNPACK
+        _, _, net_1w, avg_1w, _ = bandar_1w
+        _, _, net_1m, avg_1m, _ = bandar_1m
+        _, _, net_3m, avg_3m, _ = bandar_3m
+    
+        # ===============================
+        # 3️⃣ FOREIGN ENGINE
+        # ===============================
+        foreign_1w = foreign_engine(df.tail(min(len(df), 5)))
+        foreign_1m = foreign_engine(df.tail(min(len(df), 22)))
+        foreign_3m = foreign_engine(df.tail(min(len(df), 66)))
+    
+        # FOREIGN UNPACK (INI POSISINYA)
+        _, _, net_f1w, avg_f1w, _ = foreign_1w
+        _, _, net_f1m, avg_f1m, _ = foreign_1m
+        _, _, net_f3m, avg_f3m, _ = foreign_3m
+    
+        # ===============================
+        # 4️⃣ FORMAT OUTPUT
+        # ===============================
+        bandar_text = format_bandarmology(
+            net_1w, avg_1w,
+            net_1m, avg_1m,
+            net_3m, avg_3m,
+            demand_zone
+        )
+    
+        foreign_text = format_foreign_flow(
+            net_f1w, avg_f1w,
+            net_f1m, avg_f1m,
+            net_f3m, avg_f3m,
+            demand_zone
+        )
+    
+        await ctx.send(bandar_text + "\n" + foreign_text)))
 
         def bandar_quality(accum_3d, avg_3d, demand_zone):
             if accum_3d > 0 and avg_3d >= demand_zone:
