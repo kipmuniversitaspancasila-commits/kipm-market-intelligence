@@ -304,6 +304,10 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
         # fallback ke demand low
         invalidation = round_down(best_demand["low"] * 0.995)
 
+    # Safety guard supaya SL tidak masuk entry
+    if invalidation >= entry_low:
+        invalidation = round_down(entry_low * 0.985)
+
     confidence = min(85, best_demand["score"] * 14)
 
     return (
