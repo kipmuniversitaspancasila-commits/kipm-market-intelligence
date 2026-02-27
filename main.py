@@ -332,9 +332,21 @@ async def chart(ctx, ticker: str):
         # =========================
         df = yf.download(symbol, period="6mo", interval="1d")
 
+        # Jika MultiIndex kolom
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        
+        # Pastikan semua kolom numeric
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        
+        df = df.dropna()
+
         if df.empty:
             await ctx.send("Data tidak ditemukan.")
             return
+        print(df.dtypes)
+        print(type(df["Close"].iloc[-1]))
         print("=== DEBUG CLOSE TYPE ===")
         print(type(df["Close"]))
         print(df["Close"].tail())
