@@ -844,4 +844,7 @@ async def chart(ctx, ticker: str):
         file = discord.File(file_path)
         await ctx.send(file=file, content=caption)
 
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
+
 bot.run(TOKEN)
