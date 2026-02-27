@@ -131,10 +131,9 @@ def detect_liquidity_sweep(df):
 # VOLUME SPIKE
 # ===============================
 def detect_volume_spike(df):
-    avg = df["Volume"].rolling(20).mean().iloc[-1] or 0
-    last = df["Volume"].iloc[-1]
-    return last > avg * 1.8
-
+    avg = df["Volume"].rolling(20).mean().iloc[-1]
+    if pd.isna(avg):
+        avg = 0
 
 # ===============================
 # IMPULSE MOVE
@@ -312,51 +311,32 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
 async def chart(ctx, ticker: str):
 
     try:
+        import yfinance as yf
+        import pandas as pd
+        import numpy as np
 
-        # =========================================
-        # PREPARE DATA
-        # =========================================
+        # =========================
+        # 1. PREPARATION
+        # =========================
         ticker = ticker.upper()
+
         if ".JK" not in ticker:
-            ticker += ".JK"
+            symbol = ticker + ".JK"
+        else:
+            symbol = ticker
 
         await ctx.send(f"📥{ticker}")
 
-        df_full = yf.download(ticker, period="max", interval="1d")
+        # =========================
+        # 2. DOWNLOAD DATA
+        # =========================
+        df = yf.download(symbol, period="6mo", interval="1d")
 
-        if isinstance(df_full.columns, pd.MultiIndex):
-            df_full.columns = df_full.columns.get_level_values(0)
+        if df.empty:
+            await ctx.send("Data tidak ditemukan.")
+            return
 
-        df_full.dropna(inplace=True)
-
-        df = df_full.tail(500).copy()
-
-        last_price = df["Close"].iloc[-1]
-        last_price_text = f"{float(last_price):,.0f}"
-
-        # =========================================
-        # FREQUENCY
-        # =========================================
-        if last_price < 2000:
-            bins = 20
-        elif last_price < 5000:
-            bins = 25
-        else:
-            bins = 30
-
-        freq_series = calculate_frequency_series(df, bins=bins)
-
-        # =========================================
-        # RSI
-        # =========================================
-        df["RSI"] = calculate_rsi(df["Close"])
-        rsi_now = float(df["RSI"].iloc[-1])
-
-        # =========================================
-        # STOCHASTIC
-        # =========================================
-        k, d = calculate_stochastic(df)
-        stoch_now = float(k.iloc[-1])
+        last_price = float(df["Close"].iloc[-1])
 
         # =========================================
         # SUPPORT RESISTANCE ENGINE
@@ -400,15 +380,11 @@ async def chart(ctx, ticker: str):
 
             for cluster in high_clusters:
                 if len(cluster) >= 2:
-                    resistance_zones.append(
-                        (min(cluster), max(cluster), len(cluster))
-                    )
+                    resistance_zones.append((min(cluster), max(cluster), len(cluster)))
 
             for cluster in low_clusters:
                 if len(cluster) >= 2:
-                    support_zones.append(
-                        (min(cluster), max(cluster), len(cluster))
-                    )
+                    support_zones.append((min(cluster), max(cluster), len(cluster)))
 
             resistance_zones = sorted(
                 [z for z in resistance_zones if z[0] > current_price],
@@ -422,6 +398,7 @@ async def chart(ctx, ticker: str):
             )
 
             return resistance_zones[:2], support_zones[:2]
+
 
         # =========================================
         # SUPPLY DEMAND ENGINE
@@ -463,69 +440,48 @@ async def chart(ctx, ticker: str):
         # FAIR VALUE GAP ENGINE
         # =========================================
         def calculate_fvg(df, current_price):
-        
+
             bullish_fvg = []
             bearish_fvg = []
-        
+
             for i in range(2, len(df)):
-                c1 = df.iloc[i-2]
-                c2 = df.iloc[i-1]
+                c1 = df.iloc[i - 2]
                 c3 = df.iloc[i]
-        
-                # Bullish FVG (imbalance bawah → target retrace)
+
                 if c1["High"] < c3["Low"]:
-                    lower = c1["High"]
-                    upper = c3["Low"]
-                    bullish_fvg.append((lower, upper))
-        
-                # Bearish FVG (imbalance atas → target retrace)
+                    bullish_fvg.append((c1["High"], c3["Low"]))
+
                 if c1["Low"] > c3["High"]:
-                    lower = c3["High"]
-                    upper = c1["Low"]
-                    bearish_fvg.append((lower, upper))
-        
-            # Filter relatif terhadap current price
+                    bearish_fvg.append((c3["High"], c1["Low"]))
+
             upper_fvg = sorted(
                 [z for z in bearish_fvg if z[0] > current_price],
                 key=lambda x: x[0]
             )
-        
+
             lower_fvg = sorted(
                 [z for z in bullish_fvg if z[1] < current_price],
                 key=lambda x: x[1],
                 reverse=True
             )
-        
+
             return upper_fvg[:2], lower_fvg[:2]
-            
+
+
         # =========================================
-        # ZONE MERGE FUNCTION
+        # HITUNG ZONE 
         # =========================================
-        
-        def merge_zones(zones):
-            if not zones:
-                return []
-        
-            zones = sorted(zones, key=lambda x: x[0])
-            merged = []
-        
-            current_low, current_high = zones[0]
-        
-            for low, high in zones[1:]:
-                if low <= current_high:  # overlap
-                    current_high = max(current_high, high)
-                else:
-                    merged.append((current_low, current_high))
-                    current_low, current_high = low, high
-        
-            merged.append((current_low, current_high))
-            return merged
-        
+        res_zones, sup_zones = calculate_sr_zones(df, last_price)
+        supply_zones, demand_zones = calculate_supply_demand(df, last_price)
+        upper_fvg, lower_fvg = calculate_fvg(df, last_price)
+
+        demand_zone = demand_zones[0][1] if demand_zones else 0
+
 
         # =========================================
         # FUNDAMENTAL
         # =========================================
-        stock = yf.Ticker(ticker)
+        stock = yf.Ticker(symbol)
         info = stock.info
 
         pbv = info.get("priceToBook", None)
@@ -537,6 +493,7 @@ async def chart(ctx, ticker: str):
         # =========================================
         # BANDARMOLOGY ENGINE
         # =========================================
+
         def format_value(v):
             if v >= 1_000_000_000_000:
                 return f"{v/1_000_000_000_000:.2f} T"
@@ -546,7 +503,8 @@ async def chart(ctx, ticker: str):
                 return f"{v/1_000_000:.2f} M"
             else:
                 return f"{v:.0f}"
-                
+
+
         def foreign_engine(data):
             foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
             foreign_sell = foreign_buy * 1.05
@@ -554,6 +512,7 @@ async def chart(ctx, ticker: str):
             avg = foreign_buy / data["Volume"].sum()
             status = "Akumulasi" if net > 0 else "Distribusi"
             return foreign_buy, foreign_sell, net, avg, status
+
 
         def bandar_engine(data):
             buy = (data["Close"] * data["Volume"]).sum()
@@ -563,80 +522,15 @@ async def chart(ctx, ticker: str):
             status = "Akumulasi" if net > 0 else "Distribusi"
             return buy, sell, net, avg, status
 
-        # =============================
-        # BANDARMOLOGY REPORT TEXT
-        # =============================
-        
-        
-        def format_bandarmology(
-            accum_1w, avg_1w,
-            accum_1m, avg_1m,
-            accum_3m, avg_3m,
-            demand_zone
-        ):
-        
-            kualitas = bandar_quality(accum_1w, avg_1w, demand_zone)
-        
-            text = (
-                "BANDARMOLOGY\n"
-                f"3D  : Accum {format_value(accum_1w)} | Avg {avg_1w:,}\n"
-                f"1M  : Accum {format_value(accum_1m)} | Avg {avg_1m:,}\n"
-                f"3M  : Accum {format_value(accum_3m)} | Avg {avg_3m:,}\n\n"
-                f"Kualitas Akumulasi :\n{kualitas}"
-            )
-            return text
-        def format_foreign_flow(
-            net_1w, avg_1w,
-            net_1m, avg_1m,
-            net_3m, avg_3m,
-            demand_zone
-        ):
-        
-            kualitas = foreign_quality(net_1w, avg_1w, demand_zone)
-        
-            text = (
-                "FOREIGN FLOW\n"
-                f"3D  : Net {format_value(net_1w)} | Avg {avg_1w:,}\n"
-                f"1M  : Net {format_value(net_1m)} | Avg {avg_1m:,}\n"
-                f"3M  : Net {format_value(net_3m)} | Avg {avg_3m:,}\n\n"
-                f"Kualitas Foreign :\n{kualitas}"
-            )
-            return text
-        bandar_text = format_bandarmology(
-            accum_1w, avg_1w,
-            accum_1m, avg_1m,
-            accum_3m, avg_3m,
-            demand_zone
-        )
-        
-        foreign_text = format_foreign_flow(
-            net_1w, avg_f1w,
-            net_1m, avg_f1m,
-            net_3m, avg_f3m,
-            demand_zone
-        )
-        
-        embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
-        embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
 
+        # =========================================
+        # 1️⃣ BANDAR ENGINE (HARUS DI ATAS)
+        # =========================================
 
-        # ===============================
-        # 1️⃣ DOWNLOAD DATA
-        # ===============================
-    
-    
-        if df.empty:
-            await ctx.send("Data tidak ditemukan")
-            return
-        
-        # ===============================
-        # 2️⃣ BANDAR ENGINE
-        # ===============================
         bandar_1w = bandar_engine(df.tail(min(len(df), 5)))
         bandar_1m = bandar_engine(df.tail(min(len(df), 22)))
         bandar_3m = bandar_engine(df.tail(min(len(df), 66)))
-    
-        # BANDAR UNPACK
+
         _, _, net_1w, avg_1w, _ = bandar_1w
         _, _, net_1m, avg_1m, _ = bandar_1m
         _, _, net_3m, avg_3m, _ = bandar_3m
@@ -644,21 +538,24 @@ async def chart(ctx, ticker: str):
         accum_1w = net_1w
         accum_1m = net_1m
         accum_3m = net_3m
-    
-        # ===============================
-        # 3️⃣ FOREIGN ENGINE
-        # ===============================
+
+
+        # =========================================
+        # 2️⃣ FOREIGN ENGINE
+        # =========================================
+
         foreign_1w = foreign_engine(df.tail(min(len(df), 5)))
         foreign_1m = foreign_engine(df.tail(min(len(df), 22)))
         foreign_3m = foreign_engine(df.tail(min(len(df), 66)))
-    
-        # FOREIGN UNPACK (INI POSISINYA)
+
         _, _, net_f1w, avg_f1w, _ = foreign_1w
         _, _, net_f1m, avg_f1m, _ = foreign_1m
         _, _, net_f3m, avg_f3m, _ = foreign_3m
 
 
-        await ctx.send(f"Data {ticker} berhasil diambil")
+        # =========================================
+        # QUALITY FUNCTION (HARUS SETELAH DATA ADA)
+        # =========================================
 
         def bandar_quality(accum_1w, avg_1w, demand_zone):
             if accum_1w > 0 and avg_1w >= demand_zone:
@@ -667,7 +564,8 @@ async def chart(ctx, ticker: str):
                 return "Bandar akumulasi, tapi belum optimal."
             else:
                 return "Terlihat distribusi jangka pendek."
-                
+
+
         def foreign_quality(net_1w, avg_1w, demand_zone):
             if net_1w > 0 and avg_1w >= demand_zone:
                 return "Asing masih net buy, mendukung bias bullish."
@@ -676,105 +574,88 @@ async def chart(ctx, ticker: str):
             else:
                 return "Asing cenderung net sell, perlu waspada."
 
+
         # =========================================
-        # NUMBER FORMATTER
+        # FORMAT REPORT
         # =========================================
-    
-        def format_billions(v):
-            v = float(v)
-        
-            if abs(v) >= 1_000_000_000_000:
-                return f"{v/1_000_000_000_000:.2f} T"
-            elif abs(v) >= 1_000_000_000:
-                return f"{v/1_000_000_000:.2f} B"
-            elif abs(v) >= 1_000_000:
-                return f"{v/1_000_000:.2f} M"
-            else:
-                return f"{v:,.0f}"
 
-        def get_tick_size(price):
-            if price < 200:
-                return 1
-            elif price < 500:
-                return 2
-            elif price < 2000:
-                return 5
-            elif price < 5000:
-                return 10
-            else:
-                return 25
+        def format_bandarmology(
+            accum_1w, avg_1w,
+            accum_1m, avg_1m,
+            accum_3m, avg_3m,
+            demand_zone
+        ):
 
-        def round_down(price):
-            tick = get_tick_size(price)
-            return int((price // tick) * tick)
-        
-        def round_up(price):
-            tick = get_tick_size(price)
-            return int(((price + tick - 1) // tick) * tick)
+            kualitas = bandar_quality(accum_1w, avg_1w, demand_zone)
 
-        # =============================
-        # STYLE (TIDAK DIUBAH)
-        # =============================
-        mc = mpf.make_marketcolors(
-            up="#3a7bd5",
-            down="white",
-            edge="inherit",
-            wick="inherit",
-            volume="inherit"
+            text = (
+                "BANDARMOLOGY\n"
+                f"3D  : Accum {format_value(accum_1w)} | Avg {avg_1w:,}\n"
+                f"1M  : Accum {format_value(accum_1m)} | Avg {avg_1m:,}\n"
+                f"3M  : Accum {format_value(accum_3m)} | Avg {avg_3m:,}\n\n"
+                f"Kualitas Akumulasi :\n{kualitas}"
+            )
+            return text
+
+
+        def format_foreign_flow(
+            net_1w, avg_1w,
+            net_1m, avg_1m,
+            net_3m, avg_3m,
+            demand_zone
+        ):
+
+            kualitas = foreign_quality(net_1w, avg_1w, demand_zone)
+
+            text = (
+                "FOREIGN FLOW\n"
+                f"3D  : Net {format_value(net_1w)} | Avg {avg_1w:,}\n"
+                f"1M  : Net {format_value(net_1m)} | Avg {avg_1m:,}\n"
+                f"3M  : Net {format_value(net_3m)} | Avg {avg_3m:,}\n\n"
+                f"Kualitas Foreign :\n{kualitas}"
+            )
+            return text
+
+
+        # =========================================
+        # BARU PANGGIL REPORT
+        # =========================================
+
+        bandar_text = format_bandarmology(
+            accum_1w, avg_1w,
+            accum_1m, avg_1m,
+            accum_3m, avg_3m,
+            demand_zone
         )
 
-        style = mpf.make_mpf_style(
-            base_mpf_style="default",
-            marketcolors=mc,
-            facecolor="#0f1116",
-            figcolor="#0f1116",
-            gridstyle="",
-            y_on_right=True,
-            rc={
-                "xtick.color": "white",
-                "ytick.color": "white",
-                "axes.labelcolor": "white",
-                "axes.edgecolor": "white",
-                "text.color": "white"
-            }
+        foreign_text = format_foreign_flow(
+            net_f1w, avg_f1w,
+            net_f1m, avg_f1m,
+            net_f3m, avg_f3m,
+            demand_zone
         )
 
-        apds = [
-            mpf.make_addplot(freq_series, panel=2, type='line', width=1.5),
-            mpf.make_addplot(df["RSI"], panel=3, width=1)
-        ]
+        embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
+        embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
 
-        file_path = f"{ticker}_chart.png"
-
-        fig, axes = mpf.plot(
-            df,
-            type="candle",
-            style=style,
-            volume=True,
-            addplot=apds,
-            panel_ratios=(3, 1, 1, 1),
-            figsize=(14, 8),
-            returnfig=True
-        )
-
-        for ax in axes:
-            ax.grid(False)
-            ax.yaxis.tick_right()
-            ax.yaxis.set_label_position("right")
-
-        fig.savefig(file_path)
+        await ctx.send(f"Data {ticker} berhasil diambil")
 
 
         # =============================
         # SUPPORT RESISTANCE RESULT
         # =============================
         current_price = float(last_price)
+        last_price_text = f"{int(current_price):,}"
 
         res_zones, sup_zones = calculate_sr_zones(df, current_price)
         supply_zones, demand_zones = calculate_supply_demand(df, current_price)
         demand_zone = demand_zones[0][1] if demand_zones else 0
         upper_fvg, lower_fvg = calculate_fvg(df, current_price)
 
+
+        # =============================
+        # ZONE FORMATTER
+        # =============================
         def format_zone(zone):
             if zone:
                 return f"{round_down(zone[0])} - {round_down(zone[1])} (x{zone[2]})"
@@ -791,23 +672,25 @@ async def chart(ctx, ticker: str):
             if not zone:
                 return "N/A"
             return f"{round_down(zone[0])} - {round_down(zone[1])}"
-            
-        supply1 = format_simple_zone(supply_zones[0]) if len(supply_zones)>0 else "N/A"
-        supply2 = format_simple_zone(supply_zones[1]) if len(supply_zones)>1 else "N/A"
-        
-        demand1 = format_simple_zone(demand_zones[0]) if len(demand_zones)>0 else "N/A"
-        demand2 = format_simple_zone(demand_zones[1]) if len(demand_zones)>1 else "N/A"
+
+        supply1 = format_simple_zone(supply_zones[0]) if len(supply_zones) > 0 else "N/A"
+        supply2 = format_simple_zone(supply_zones[1]) if len(supply_zones) > 1 else "N/A"
+
+        demand1 = format_simple_zone(demand_zones[0]) if len(demand_zones) > 0 else "N/A"
+        demand2 = format_simple_zone(demand_zones[1]) if len(demand_zones) > 1 else "N/A"
+
 
         def format_fvg(zone):
             if not zone:
                 return "N/A"
             return f"{round_down(zone[0])} - {round_down(zone[1])}"
-        
-        upper_fvg1 = format_fvg(upper_fvg[0]) if len(upper_fvg)>0 else "N/A"
-        upper_fvg2 = format_fvg(upper_fvg[1]) if len(upper_fvg)>1 else "N/A"
-        
-        lower_fvg1 = format_fvg(lower_fvg[0]) if len(lower_fvg)>0 else "N/A"
-        lower_fvg2 = format_fvg(lower_fvg[1]) if len(lower_fvg)>1 else "N/A"
+
+        upper_fvg1 = format_fvg(upper_fvg[0]) if len(upper_fvg) > 0 else "N/A"
+        upper_fvg2 = format_fvg(upper_fvg[1]) if len(upper_fvg) > 1 else "N/A"
+
+        lower_fvg1 = format_fvg(lower_fvg[0]) if len(lower_fvg) > 0 else "N/A"
+        lower_fvg2 = format_fvg(lower_fvg[1]) if len(lower_fvg) > 1 else "N/A"
+
 
         # =========================================
         # SUPPLY & DEMAND MERGE ENGINE
@@ -841,10 +724,10 @@ async def chart(ctx, ticker: str):
             final_supply_zones.append(zone)
 
         for low, high in merged_demand:
-        
+
             has_sr = any(low <= r[0] <= high for r in res_zones)
             has_fvg = any(low <= fvg[0] <= high for fvg in lower_fvg)
-        
+
             zone = {
                 "low": low,
                 "high": high,
@@ -857,6 +740,7 @@ async def chart(ctx, ticker: str):
                 "impulsive_move": detect_impulse(df),
                 "volume_spike": detect_volume_spike(df)
             }
+
             zone["score"] = score_zone(zone)
             zone["label"] = classify_zone(zone["score"])
             final_demand_zones.append(zone)
@@ -882,7 +766,7 @@ async def chart(ctx, ticker: str):
         lower_fvg_tuple = lower_fvg[0] if len(lower_fvg) > 0 else None
 
         magnet = liquidity_magnet(
-            float(last_price),
+            float(current_price),
             upper_fvg_tuple,
             lower_fvg_tuple
         )
@@ -892,13 +776,7 @@ async def chart(ctx, ticker: str):
         # CONFLUENCE SUMMARY BUILDER
         # =========================================
         summary_text = "\n══════════════════\n🎯 CONFLUENCE SUMMARY\n\n"
-        # DEBUG CHECK DATA
-        print("Demand:", final_demand_zones)
-        print("Supply:", final_supply_zones)
-        print("sup_zones:", sup_zones)
-        print("res_zones:", res_zones)
-        print("FVG:", upper_fvg)
-                
+
         trade_plan_text = build_trade_plan(
             final_supply_zones,
             final_demand_zones,
@@ -907,7 +785,7 @@ async def chart(ctx, ticker: str):
             res_zones,
             bias,
             probability,
-            last_price
+            current_price
         )
 
         for zone in final_supply_zones:
@@ -937,25 +815,25 @@ async def chart(ctx, ticker: str):
         # =============================
         caption = (
             f"💰 Last Price : {last_price_text}\n\n"
-        
+
             f"🟢 R1 : {resistance1}\n"
             f"🟢 R2 : {resistance2}\n\n"
-        
+
             f"🔴 S1 : {support1}\n"
             f"🔴 S2 : {support2}\n\n"
-        
+
             f"📦 Supply 1 : {supply1}\n"
             f"📦 Supply 2 : {supply2}\n\n"
-        
+
             f"📥 Demand 1 : {demand1}\n"
             f"📥 Demand 2 : {demand2}\n\n"
-        
+
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
-        
+
             f"📚 PBV : {pbv_text}\n"
-            f"🏛️ Equity / Share : {equity_text}\n"
-        
+            f"🏛️ Equity / Share : {equity_text}\n\n"
+
             f"📊 {ticker}\n"
             f"{trade_plan_text}\n"
             "#DYOR\n"
@@ -965,8 +843,3 @@ async def chart(ctx, ticker: str):
 
         file = discord.File(file_path)
         await ctx.send(file=file, content=caption)
-
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
-
-bot.run(TOKEN)
