@@ -335,8 +335,20 @@ async def chart(ctx, ticker: str):
         if df.empty:
             await ctx.send("Data tidak ditemukan.")
             return
-
+        print("=== DEBUG CLOSE TYPE ===")
+        print(type(df["Close"]))
+        print(df["Close"].tail())
+        print("========================")
+        
         last_price = float(df["Close"].iloc[-1])
+
+        # Paksa ambil scalar tunggal walau MultiIndex
+        close_series = df["Close"]
+        
+        if isinstance(close_series, pd.DataFrame):
+            close_series = close_series.iloc[:, 0]
+        
+        last_price = float(close_series.iloc[-1])
 
         # =========================================
         # SUPPORT RESISTANCE ENGINE
