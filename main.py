@@ -666,10 +666,16 @@ async def chart(ctx, ticker: str):
             demand_zone
         )
 
+        embed = discord.Embed(
+            title=f"{ticker}",
+            description=caption,
+            color=discord.Color.green()
+        )
+        
         embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
         embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
-
-        await ctx.send(f"Data {ticker} berhasil diambil")
+        
+        await ctx.send(file=file, embed=embed)
 
 
         # =============================
