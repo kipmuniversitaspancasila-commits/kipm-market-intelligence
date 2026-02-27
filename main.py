@@ -311,6 +311,7 @@ async def chart(ctx, ticker: str):
     try:
         caption = ""       
         file_path = None
+        file = None
 
         # =========================
         # 1. PREPARATION
@@ -662,9 +663,6 @@ async def chart(ctx, ticker: str):
             demand_zone
         )
         
-        await ctx.send(file=file, content=caption)
-
-
         # =============================
         # SUPPORT RESISTANCE RESULT
         # =============================
