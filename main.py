@@ -843,3 +843,5 @@ async def chart(ctx, ticker: str):
 
         file = discord.File(file_path)
         await ctx.send(file=file, content=caption)
+
+bot.run(TOKEN)
