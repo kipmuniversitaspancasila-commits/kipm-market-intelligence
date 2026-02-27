@@ -866,14 +866,15 @@ async def chart(ctx, ticker: str):
             "by @marketnmocha"
         )
 
-        # =============================
-        # FINAL SEND
-        # =============================
-        
-        if file_path:
+        if file_path and os.path.exists(file_path):
             file = discord.File(file_path)
             await ctx.send(file=file, content=caption)
         else:
-            await ctx.send(content=caption)
+            await ctx.send(caption)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        await ctx.send(f"❌ Error: {e}")
 
 bot.run(TOKEN)
