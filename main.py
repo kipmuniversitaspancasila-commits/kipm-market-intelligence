@@ -34,7 +34,6 @@ def calculate_rsi(series, period=14):
     rs = avg_gain / avg_loss
     return 100 - (100 / (1 + rs))
 
-
 # ===============================
 # STOCHASTIC
 # ===============================
