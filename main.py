@@ -555,6 +555,61 @@ async def chart(ctx, ticker: str):
             status = "Akumulasi" if net > 0 else "Distribusi"
             return buy, sell, net, avg, status
 
+        # =============================
+        # BANDARMOLOGY REPORT TEXT
+        # =============================
+
+        def format_bandarmology(
+            accum_1w, avg_1w,
+            accum_1m, avg_1m,
+            accum_3m, avg_3m,
+            demand_zone
+        ):
+        
+            kualitas = bandar_quality(accum_1w, avg_1w, demand_zone)
+        
+            text = (
+                "BANDARMOLOGY\n"
+                f"3D  : Accum {format_value(accum_1w)} | Avg {avg_1w:,}\n"
+                f"1M  : Accum {format_value(accum_1m)} | Avg {avg_1m:,}\n"
+                f"3M  : Accum {format_value(accum_3m)} | Avg {avg_3m:,}\n\n"
+                f"Kualitas Akumulasi :\n{kualitas}"
+            )
+            return text
+        def format_foreign_flow(
+            net_1w, avg_1w,
+            net_1m, avg_1m,
+            net_3m, avg_3m,
+            demand_zone
+        ):
+        
+            kualitas = foreign_quality(net_1w, avg_1w, demand_zone)
+        
+            text = (
+                "FOREIGN FLOW\n"
+                f"3D  : Net {format_value(net_1w)} | Avg {avg_1w:,}\n"
+                f"1M  : Net {format_value(net_1m)} | Avg {avg_1m:,}\n"
+                f"3M  : Net {format_value(net_3m)} | Avg {avg_3m:,}\n\n"
+                f"Kualitas Foreign :\n{kualitas}"
+            )
+            return text
+        bandar_text = format_bandarmology(
+            accum_1w, avg_1w,
+            accum_1m, avg_1m,
+            accum_3m, avg_3m,
+            demand_zone
+        )
+        
+        foreign_text = format_foreign_flow(
+            net_1w, avg_f3d,
+            net_1m, avg_f1m,
+            net_3m, avg_f3m,
+            demand_zone
+        )
+        
+        embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
+        embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
+
         def foreign_engine(data):
             foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
             foreign_sell = foreign_buy * 1.05
@@ -613,20 +668,20 @@ async def chart(ctx, ticker: str):
             demand_zone
         )
     
-        await ctx.send(f"Data {symbol} berhasil diambil")
+        await ctx.send(f"Data {ticker} berhasil diambil")
 
-        def bandar_quality(accum_3d, avg_3d, demand_zone):
-            if accum_3d > 0 and avg_3d >= demand_zone:
+        def bandar_quality(accum_1w, avg_1w, demand_zone):
+            if accum_1w > 0 and avg_1w >= demand_zone:
                 return "3D kuat, bandar masih maintain avg di atas demand zone."
-            elif accum_3d > 0:
+            elif accum_1w > 0:
                 return "Bandar akumulasi, tapi belum optimal."
             else:
                 return "Terlihat distribusi jangka pendek."
                 
-        def foreign_quality(net_3d, avg_3d, demand_zone):
-            if net_3d > 0 and avg_3d >= demand_zone:
+        def foreign_quality(net_1w, avg_1w, demand_zone):
+            if net_1w > 0 and avg_1w >= demand_zone:
                 return "Asing masih net buy, mendukung bias bullish."
-            elif net_3d > 0:
+            elif net_1w > 0:
                 return "Asing mulai masuk, tapi belum dominan."
             else:
                 return "Asing cenderung net sell, perlu waspada."
@@ -719,60 +774,7 @@ async def chart(ctx, ticker: str):
 
         fig.savefig(file_path)
 
-        # =============================
-        # BANDARMOLOGY REPORT TEXT
-        # =============================
 
-        def format_bandarmology(
-            accum_3d, avg_3d,
-            accum_1m, avg_1m,
-            accum_3m, avg_3m,
-            demand_zone
-        ):
-        
-            kualitas = bandar_quality(accum_3d, avg_3d, demand_zone)
-        
-            text = (
-                "BANDARMOLOGY\n"
-                f"3D  : Accum {format_value(accum_3d)} | Avg {avg_3d:,}\n"
-                f"1M  : Accum {format_value(accum_1m)} | Avg {avg_1m:,}\n"
-                f"3M  : Accum {format_value(accum_3m)} | Avg {avg_3m:,}\n\n"
-                f"Kualitas Akumulasi :\n{kualitas}"
-            )
-
-        def format_foreign_flow(
-            net_3d, avg_3d,
-            net_1m, avg_1m,
-            net_3m, avg_3m,
-            demand_zone
-        ):
-        
-            kualitas = foreign_quality(net_3d, avg_3d, demand_zone)
-        
-            text = (
-                "FOREIGN FLOW\n"
-                f"3D  : Net {format_value(net_3d)} | Avg {avg_3d:,}\n"
-                f"1M  : Net {format_value(net_1m)} | Avg {avg_1m:,}\n"
-                f"3M  : Net {format_value(net_3m)} | Avg {avg_3m:,}\n\n"
-                f"Kualitas Foreign :\n{kualitas}"
-            )
-
-        bandar_text = format_bandarmology(
-            accum_3d, avg_3d,
-            accum_1m, avg_1m,
-            accum_3m, avg_3m,
-            demand_zone
-        )
-        
-        foreign_text = format_foreign_flow(
-            net_3d, avg_f3d,
-            net_1m, avg_f1m,
-            net_3m, avg_f3m,
-            demand_zone
-        )
-        
-        embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
-        embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
         # =============================
         # SUPPORT RESISTANCE RESULT
         # =============================
