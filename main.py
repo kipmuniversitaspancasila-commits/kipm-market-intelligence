@@ -309,11 +309,10 @@ def build_trade_plan(final_supply_zones, final_demand_zones,
 # =========================================
 @bot.command()
 async def chart(ctx, ticker: str):
-
+    
     try:
-        import yfinance as yf
-        import pandas as pd
-        import numpy as np
+        caption = ""       
+        file_path = None
 
         # =========================
         # 1. PREPARATION
@@ -352,7 +351,6 @@ async def chart(ctx, ticker: str):
         print(df["Close"].tail())
         print("========================")
         
-        last_price = float(df["Close"].iloc[-1])
 
         # Paksa ambil scalar tunggal walau MultiIndex
         close_series = df["Close"]
@@ -665,17 +663,8 @@ async def chart(ctx, ticker: str):
             net_f3m, avg_f3m,
             demand_zone
         )
-
-        embed = discord.Embed(
-            title=f"{ticker}",
-            description=caption,
-            color=discord.Color.green()
-        )
         
-        embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
-        embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
-        
-        await ctx.send(file=file, embed=embed)
+        await ctx.send(file=file, content=caption)
 
 
         # =============================
