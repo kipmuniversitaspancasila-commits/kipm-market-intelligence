@@ -546,6 +546,14 @@ async def chart(ctx, ticker: str):
                 return f"{v/1_000_000:.2f} M"
             else:
                 return f"{v:.0f}"
+                
+        def foreign_engine(data):
+            foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
+            foreign_sell = foreign_buy * 1.05
+            net = foreign_buy - foreign_sell
+            avg = foreign_buy / data["Volume"].sum()
+            status = "Akumulasi" if net > 0 else "Distribusi"
+            return foreign_buy, foreign_sell, net, avg, status
 
         def bandar_engine(data):
             buy = (data["Close"] * data["Volume"]).sum()
@@ -558,7 +566,8 @@ async def chart(ctx, ticker: str):
         # =============================
         # BANDARMOLOGY REPORT TEXT
         # =============================
-
+        demand_zone = demand_zones[0][1] if demand_zones else 0
+        
         def format_bandarmology(
             accum_1w, avg_1w,
             accum_1m, avg_1m,
@@ -601,7 +610,7 @@ async def chart(ctx, ticker: str):
         )
         
         foreign_text = format_foreign_flow(
-            net_1w, avg_f3d,
+            net_1w, avg_f1w,
             net_1m, avg_f1m,
             net_3m, avg_f3m,
             demand_zone
@@ -610,13 +619,6 @@ async def chart(ctx, ticker: str):
         embed.add_field(name="Market Maker Activity", value=bandar_text, inline=False)
         embed.add_field(name="Foreign Activity", value=foreign_text, inline=False)
 
-        def foreign_engine(data):
-            foreign_buy = (data["Volume"] * data["Close"] * 0.35).sum()
-            foreign_sell = foreign_buy * 1.05
-            net = foreign_buy - foreign_sell
-            avg = foreign_buy / data["Volume"].sum()
-            status = "Akumulasi" if net > 0 else "Distribusi"
-            return foreign_buy, foreign_sell, net, avg, status
 
         # ===============================
         # 1️⃣ DOWNLOAD DATA
@@ -638,6 +640,10 @@ async def chart(ctx, ticker: str):
         _, _, net_1w, avg_1w, _ = bandar_1w
         _, _, net_1m, avg_1m, _ = bandar_1m
         _, _, net_3m, avg_3m, _ = bandar_3m
+
+        accum_1w = net_1w
+        accum_1m = net_1m
+        accum_3m = net_3m
     
         # ===============================
         # 3️⃣ FOREIGN ENGINE
@@ -650,24 +656,8 @@ async def chart(ctx, ticker: str):
         _, _, net_f1w, avg_f1w, _ = foreign_1w
         _, _, net_f1m, avg_f1m, _ = foreign_1m
         _, _, net_f3m, avg_f3m, _ = foreign_3m
-    
-        # ===============================
-        # 4️⃣ FORMAT OUTPUT
-        # ===============================
-        bandar_text = format_bandarmology(
-            net_1w, avg_1w,
-            net_1m, avg_1m,
-            net_3m, avg_3m,
-            demand_zone
-        )
-    
-        foreign_text = format_foreign_flow(
-            net_f1w, avg_f1w,
-            net_f1m, avg_f1m,
-            net_f3m, avg_f3m,
-            demand_zone
-        )
-    
+
+
         await ctx.send(f"Data {ticker} berhasil diambil")
 
         def bandar_quality(accum_1w, avg_1w, demand_zone):
@@ -965,7 +955,7 @@ async def chart(ctx, ticker: str):
             f"📚 PBV : {pbv_text}\n"
             f"🏛️ Equity / Share : {equity_text}\n"
         
-            f"{report}\n"
+            f"📊 {ticker}\n"
             f"{trade_plan_text}\n"
             "#DYOR\n"
             "#DisclaimerOn\n"
