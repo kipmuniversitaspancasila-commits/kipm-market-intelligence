@@ -483,12 +483,19 @@ async def chart(ctx, ticker: str):
         # =========================================
         stock = yf.Ticker(symbol)
         info = stock.info
-
-        pbv = info.get("priceToBook", None)
-        equity = info.get("bookValue", None)
-
-        pbv_text = f"{float(pbv):.2f}" if pbv else "N/A"
-        equity_text = f"{float(equity):.2f}" if equity else "N/A"
+        
+        pbv = info.get("priceToBook")
+        equity = info.get("bookValue")
+        
+        try:
+            pbv_text = f"{float(pbv):.2f}" if pbv is not None else "N/A"
+        except:
+            pbv_text = "N/A"
+        
+        try:
+            equity_text = f"{float(equity):.2f}" if equity is not None else "N/A"
+        except:
+            equity_text = "N/A"
 
         # =========================================
         # BANDARMOLOGY ENGINE
@@ -845,6 +852,8 @@ async def chart(ctx, ticker: str):
         await ctx.send(file=file, content=caption)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         await ctx.send(f"❌ Error: {e}")
 
 bot.run(TOKEN)
