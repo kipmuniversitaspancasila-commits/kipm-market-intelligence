@@ -566,7 +566,7 @@ async def chart(ctx, ticker: str):
         # =============================
         # BANDARMOLOGY REPORT TEXT
         # =============================
-        demand_zone = demand_zones[0][1] if demand_zones else 0
+        
         
         def format_bandarmology(
             accum_1w, avg_1w,
@@ -772,6 +772,7 @@ async def chart(ctx, ticker: str):
 
         res_zones, sup_zones = calculate_sr_zones(df, current_price)
         supply_zones, demand_zones = calculate_supply_demand(df, current_price)
+        demand_zone = demand_zones[0][1] if demand_zones else 0
         upper_fvg, lower_fvg = calculate_fvg(df, current_price)
 
         def format_zone(zone):
