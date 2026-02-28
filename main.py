@@ -10,6 +10,7 @@ import numpy as np
 import os
 import mplfinance as mpf
 import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
