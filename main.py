@@ -185,18 +185,25 @@ def detect_bias(supply_zones, demand_zones, rsi):
 # =========================
 
 async def capture_tradingview_chart(symbol):
-    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&hide_top_toolbar=1&hide_side_toolbar=1&grid=0"
+    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D"
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            args=["--no-sandbox", "--disable-dev-shm-usage"]
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu"
+            ]
         )
 
         page = await browser.new_page(viewport={"width": 1400, "height": 800})
+
         await page.goto(url)
-        await page.wait_for_timeout(4000)
+        await page.wait_for_timeout(5000)
 
         await page.screenshot(path="chart.png")
+
         await browser.close()
 
     return "chart.png"
@@ -561,5 +568,18 @@ async def chart(ctx, ticker: str):
 
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
+
+        # =============================
+        # INSTALL PLAYWRIGHT BROWSER (Railway fix)
+        # =============================
+        import subprocess
+        import os
+        
+        if not os.path.exists("/root/.cache/ms-playwright"):
+            try:
+                subprocess.run(["python", "-m", "playwright", "install", "chromium"], check=True)
+                print("Playwright browser installed")
+            except Exception as e:
+                print("Playwright install failed:", e)
 
 bot.run(TOKEN)
