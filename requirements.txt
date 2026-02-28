@@ -5,4 +5,3 @@ mplfinance
 numpy
 matplotlib
 requests
-
