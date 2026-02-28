@@ -216,23 +216,25 @@ async def chart(ctx, ticker: str):
         delta = df["Close"].diff()
         gain = delta.clip(lower=0)
         loss = -delta.clip(upper=0)
-
+        
         avg_gain = gain.rolling(14).mean()
         avg_loss = loss.rolling(14).mean()
-
+        
         rs = avg_gain / avg_loss
         df["RSI"] = 100 - (100 / (1 + rs))
-
+        rsi_now = float(df["RSI"].iloc[-1])
+        
         # =========================
         # STOCHASTIC (8,3,3)
         # =========================
         low_8 = df["Low"].rolling(8).min()
         high_8 = df["High"].rolling(8).max()
-
+        
         df["%K"] = ((df["Close"] - low_8) / (high_8 - low_8)) * 100
         df["%K"] = df["%K"].rolling(3).mean()
         df["%D"] = df["%K"].rolling(3).mean()
         
+        stoch_now = float(df["%K"].iloc[-1])
         close_series = df["Close"]
         
         if isinstance(close_series, pd.DataFrame):
