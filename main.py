@@ -8,6 +8,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import os
+import mplfinance as mpf
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
