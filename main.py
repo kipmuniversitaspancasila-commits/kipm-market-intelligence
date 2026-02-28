@@ -536,6 +536,17 @@ async def chart(ctx, ticker: str):
         import matplotlib.dates as mdates
         main_axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
         main_axes[3].tick_params(axis='x', rotation=0)
+
+        # =========================
+        # REFERENCE LINES (DI SINI!)
+        # =========================
+        # RSI
+        main_axes[2].axhline(70, color="gray", linestyle="--", linewidth=1)
+        main_axes[2].axhline(30, color="gray", linestyle="--", linewidth=1)
+        
+        # STOCH
+        main_axes[3].axhline(80, color="gray", linestyle="--", linewidth=1)
+        main_axes[3].axhline(20, color="gray", linestyle="--", linewidth=1)
         
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
