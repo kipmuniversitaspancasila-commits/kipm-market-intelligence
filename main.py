@@ -8,6 +8,8 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import os
+from playwright.async_api import async_playwright
+import asyncio
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -177,6 +179,25 @@ def detect_bias(supply_zones, demand_zones, rsi):
         return "🔴 Bearish Pressure"
 
     return "⚖️ Neutral"
+
+# =========================
+# CHART TV
+# =========================
+
+async def capture_tradingview_chart(symbol):
+    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&hide_top_toolbar=1&hide_side_toolbar=1&grid=0"
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(args=["--no-sandbox"])
+        page = await browser.new_page(viewport={"width": 1400, "height": 800})
+
+        await page.goto(url)
+        await page.wait_for_timeout(4000)
+
+        await page.screenshot(path="chart.png")
+        await browser.close()
+
+    return "chart.png"
     
 @bot.command()
 async def chart(ctx, ticker: str):
@@ -192,14 +213,12 @@ async def chart(ctx, ticker: str):
             symbol = ticker
 
         await ctx.send(f"📥 {symbol}")
-
-        symbol_tv = symbol.replace(".JK", "")
-        tv_symbol = f"IDX:{symbol_tv}"
-        
-        image_url = f"https://charts2-node.tradingview.com/snapshot?symbol={tv_symbol}&interval=1D&theme=dark"
-        
-        await ctx.send(image_url)
-
+        # =========================
+        # CHART
+        # =========================
+        symbol_chart = symbol.replace(".JK", "")
+        chart_file = await capture_tradingview_chart(symbol_chart)
+        await ctx.send(file=discord.File(chart_file))
         # =========================
         # DOWNLOAD DATA
         # =========================
