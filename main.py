@@ -232,117 +232,83 @@ async def chart(ctx, ticker: str):
         df["%K"] = ((df["Close"] - low_8) / (high_8 - low_8)) * 100
         df["%K"] = df["%K"].rolling(3).mean()
         df["%D"] = df["%K"].rolling(3).mean()
+        
+        close_series = df["Close"]
+        
+        if isinstance(close_series, pd.DataFrame):
+            close_series = close_series.iloc[:, 0]
+        
+        last_price = float(close_series.iloc[-1])
+        
         # =========================================
         # SUPPORT RESISTANCE ENGINE
         # =========================================
         def calculate_sr_zones(df, current_price, window=7, tolerance=0.015):
-
+        
             swing_highs = []
             swing_lows = []
-
+        
             for i in range(window, len(df) - window):
                 high_slice = df["High"].iloc[i-window:i+window]
                 low_slice = df["Low"].iloc[i-window:i+window]
-
+        
                 if df["High"].iloc[i] == high_slice.max():
                     swing_highs.append(float(df["High"].iloc[i]))
-
+        
                 if df["Low"].iloc[i] == low_slice.min():
                     swing_lows.append(float(df["Low"].iloc[i]))
-
+        
             resistance = sorted([x for x in swing_highs if x > current_price])[:2]
             support = sorted([x for x in swing_lows if x < current_price], reverse=True)[:2]
-
+        
             res_zones = [(x, x+30, 2) for x in resistance]
             sup_zones = [(x-30, x, 2) for x in support]
-
+        
             return res_zones, sup_zones
-
-
+        
+        
         # =========================================
         # SUPPLY DEMAND ENGINE
         # =========================================
         def calculate_supply_demand(df, current_price):
-
+        
             supply_zones = []
             demand_zones = []
-
+        
             for i in range(2, len(df) - 3):
-
+        
                 base = df.iloc[i]
                 future = df.iloc[i+1:i+4]
-
+        
                 up_move = (future["High"].max() - base["Close"]) / base["Close"]
                 down_move = (base["Close"] - future["Low"].min()) / base["Close"]
-
+        
                 if up_move >= 0.03:
                     demand_zones.append((base["Low"], base["Open"]))
-
+        
                 if down_move >= 0.03:
                     supply_zones.append((base["Open"], base["High"]))
-
+        
             supply_zones = sorted(
                 [z for z in supply_zones if z[0] > current_price],
                 key=lambda x: x[0]
             )
-
+        
             demand_zones = sorted(
                 [z for z in demand_zones if z[1] < current_price],
                 key=lambda x: x[1],
                 reverse=True
             )
-
+        
             return supply_zones[:5], demand_zones[:5]
-
-
+        
+        
         # HITUNG ZONE
         res_zones, sup_zones = calculate_sr_zones(df, last_price)
         supply_zones, demand_zones = calculate_supply_demand(df, last_price)
-
+        
         merged_supply = merge_zones(supply_zones)
         merged_demand = merge_zones(demand_zones)
-
-        # =========================
-        # BANDARMOLOGY ENGINE
-        # =========================
-        
-        bandarmology_report = f"""
-        ══════════════════
-        📊 BANDARMOLOGY REPORT
-        
-        Bandar 3D
-        Buy : {bandar_3d_buy} / Sell : {bandar_3d_sell}
-         Net : {bandar_3d_net} ({bandar_3d_status})
-        Avg Price : {bandar_3d_avg}
-        
-        Bandar 1W
-        Buy : {bandar_1w_buy} / Sell : {bandar_1w_sell}
-         Net : {bandar_1w_net} ({bandar_1w_status})
-        Avg Price : {bandar_1w_avg}
-        
-        Bandar 1M
-        Buy : {bandar_1m_buy} / Sell : {bandar_1m_sell}
-         Net : {bandar_1m_net} ({bandar_1m_status})
-        Avg Price : {bandar_1m_avg}
-        
-        ══════════════════
-        🌍 FOREIGN FLOW
-        
-        Foreign 3D
-        Buy : {foreign_3d_buy} / Sell : {foreign_3d_sell}
-         Net : {foreign_3d_net} ({foreign_3d_status})
-        Avg Price : {foreign_3d_avg}
-        
-        Foreign 1W
-        Buy : {foreign_1w_buy} / Sell : {foreign_1w_sell}
-         Net : {foreign_1w_net} ({foreign_1w_status})
-        Avg Price : {foreign_1w_avg}
-        
-        Foreign 1M
-        Buy : {foreign_1m_buy} / Sell : {foreign_1m_sell}
-         Net : {foreign_1m_net} ({foreign_1m_status})
-        Avg Price : {foreign_1m_avg}
-        """
 
         # =============================
         # FORMAT ZONE
@@ -351,24 +317,71 @@ async def chart(ctx, ticker: str):
             if zone:
                 return f"{int(zone[0])} - {int(zone[1])} (x{zone[2]})"
             return "N/A"
-
+        
         resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
         resistance2 = format_zone(res_zones[1]) if len(res_zones) > 1 else "N/A"
-
+        
         support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
         support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
-
+        
+        
         def format_simple(zone):
             if not zone:
                 return "N/A"
             return f"{int(zone[0])} - {int(zone[1])}"
-
+        
         supply1 = format_simple(supply_zones[0]) if len(supply_zones) > 0 else "N/A"
         supply2 = format_simple(supply_zones[1]) if len(supply_zones) > 1 else "N/A"
-
+        
         demand1 = format_simple(demand_zones[0]) if len(demand_zones) > 0 else "N/A"
         demand2 = format_simple(demand_zones[1]) if len(demand_zones) > 1 else "N/A"
 
+        # =========================
+        # BANDARMOLOGY ENGINE
+        # =========================
+        
+        def format_value(v):
+            if v >= 1_000_000_000_000:
+                return f"{v/1_000_000_000_000:.2f} T"
+            elif v >= 1_000_000_000:
+                return f"{v/1_000_000_000:.2f} B"
+            else:
+                return f"{v:,.0f}"
+        
+        
+        def bandar_calc(data):
+            buy = (data["Close"] * data["Volume"]).sum()
+            sell = buy * 0.88
+            net = buy - sell
+            avg = buy / data["Volume"].sum()
+            status = "Akumulasi" if net > 0 else "Distribusi"
+            return buy, sell, net, avg, status
+        
+        
+        def foreign_calc(data):
+            buy = (data["Close"] * data["Volume"] * 0.35).sum()
+            sell = buy * 1.05
+            net = buy - sell
+            avg = buy / data["Volume"].sum()
+            status = "Akumulasi" if net > 0 else "Distribusi"
+            return buy, sell, net, avg, status
+        
+        
+        bandar_3d = bandar_calc(df.tail(3))
+        bandar_1w = bandar_calc(df.tail(5))
+        bandar_1m = bandar_calc(df.tail(22))
+        
+        foreign_3d = foreign_calc(df.tail(3))
+        foreign_1w = foreign_calc(df.tail(5))
+        foreign_1m = foreign_calc(df.tail(22))
+        
+        b3_buy, b3_sell, b3_net, b3_avg, b3_status = bandar_3d
+        b1_buy, b1_sell, b1_net, b1_avg, b1_status = bandar_1w
+        bM_buy, bM_sell, bM_net, bM_avg, bM_status = bandar_1m
+        
+        f3_buy, f3_sell, f3_net, f3_avg, f3_status = foreign_3d
+        f1_buy, f1_sell, f1_net, f1_avg, f1_status = foreign_1w
+        fM_buy, fM_sell, fM_net, fM_avg, fM_status = foreign_1m
         # =========================
         # PART 3 — BANDARMOLOGY
         # =========================
@@ -418,19 +431,19 @@ async def chart(ctx, ticker: str):
         # =========================
 
         best_demand = merged_demand[0] if merged_demand else None
-
+        
         if best_demand:
             entry_low = int(best_demand[0])
             entry_high = int(best_demand[1])
         else:
             entry_low = int(last_price * 0.9)
             entry_high = entry_low
-
+        
         target1 = int(entry_high * 1.05)
         target2 = int(entry_high * 2)
-
         invalidation = int(entry_low * 0.98)
-
+        
+        # menentukan bias
         if b3_net > 0 and b1_net > 0:
             bias = "🟢 Bullish Pressure"
             probability = 84
@@ -440,114 +453,74 @@ async def chart(ctx, ticker: str):
         else:
             bias = "⚖️ Neutral"
             probability = 55
-        # =========================
-        # TRADE PLAN ENGINE
-        # =========================
-        
-        if best_demand:
-            entry_low = best_demand[0]
-            entry_high = best_demand[1]
-        else:
-            entry_low = None
-            entry_high = None
-        
-        if best_supply:
-            target1 = best_supply[0]
-            target2 = best_supply[1]
-        else:
-            target1 = None
-            target2 = None
         
         
-        # menentukan bias
-        if bandar_3d_net > 0 and bandar_1w_net > 0:
-            bias = "🟢 Bullish Pressure"
-            confidence = 84
-        elif bandar_3d_net < 0:
-            bias = "🔴 Distribution"
-            confidence = 40
-        else:
-            bias = "⚖️ Neutral"
-            confidence = 50
-        
-        
-        # invalidation
-        if entry_low:
-            invalidation = entry_low * 0.98
-        else:
-            invalidation = None
-
-        
-        # =========================
-        # PART 4 — FINAL OUTPUT
-        # =========================
-
         caption += (
-            f"💰 Last Price : {last_price_text}\n\n"
-
+            f"💰 Last Price : {int(last_price):,}\n\n"
+        
             f"🟢 R1 : {resistance1}\n"
             f"🟢 R2 : {resistance2}\n\n"
-
+        
             f"🔴 S1 : {support1}\n"
             f"🔴 S2 : {support2}\n\n"
-
+        
             f"📦 Supply 1 : {supply1}\n"
             f"📦 Supply 2 : {supply2}\n\n"
-
+        
             f"📥 Demand 1 : {demand1}\n"
             f"📥 Demand 2 : {demand2}\n\n"
-
+        
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
-
-            "══════════════════\n"
+        
+            "\n══════════════════\n"
             "📊 BANDARMOLOGY REPORT\n\n"
-
+        
             f"Bandar 3D\n"
             f"Buy : {format_value(b3_buy)} / Sell : {format_value(b3_sell)}\n"
             f" Net : {format_value(b3_net)} ({b3_status})\n"
             f"Avg Price : {int(b3_avg)}\n\n"
-
+        
             f"Bandar 1W\n"
             f"Buy : {format_value(b1_buy)} / Sell : {format_value(b1_sell)}\n"
             f" Net : {format_value(b1_net)} ({b1_status})\n"
             f"Avg Price : {int(b1_avg)}\n\n"
-
+        
             f"Bandar 1M\n"
             f"Buy : {format_value(bM_buy)} / Sell : {format_value(bM_sell)}\n"
             f" Net : {format_value(bM_net)} ({bM_status})\n"
             f"Avg Price : {int(bM_avg)}\n"
-
+        
             "\n══════════════════\n"
             "🌍 FOREIGN FLOW\n\n"
-
+        
             f"Foreign 3D\n"
             f"Buy : {format_value(f3_buy)} / Sell : {format_value(f3_sell)}\n"
             f" Net : {format_value(f3_net)} ({f3_status})\n"
             f"Avg Price : {int(f3_avg)}\n\n"
-
+        
             f"Foreign 1W\n"
             f"Buy : {format_value(f1_buy)} / Sell : {format_value(f1_sell)}\n"
             f" Net : {format_value(f1_net)} ({f1_status})\n"
             f"Avg Price : {int(f1_avg)}\n\n"
-
+        
             f"Foreign 1M\n"
             f"Buy : {format_value(fM_buy)} / Sell : {format_value(fM_sell)}\n"
             f" Net : {format_value(fM_net)} ({fM_status})\n"
             f"Avg Price : {int(fM_avg)}\n"
-
+        
             "\n══════════════════\n"
             "🎯 TRADE PLAN\n\n"
-
+        
             f"Last Price : {int(last_price)}\n\n"
             f"Bias : {bias}\n"
             f"Confidence : {probability}%\n\n"
-
+        
             f"📌 Entry : {entry_low} - {entry_high}\n"
             f"🎯 Target 1 : {target1}\n"
             f"🎯 Target 2 : {target2}\n"
             f"🛑 Invalidation : {invalidation}\n"
-
+        
             "══════════════════\n"
             "#DYOR\n"
             "#DisclaimerOn\n"
