@@ -185,7 +185,7 @@ def detect_bias(supply_zones, demand_zones, rsi):
 # =========================
 
 async def capture_tradingview_chart(symbol):
-    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D"
+    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&grid=0"
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
@@ -193,13 +193,16 @@ async def capture_tradingview_chart(symbol):
             args=[
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
-                "--disable-gpu"
+                "--disable-gpu",
+                "--single-process"
             ]
         )
 
-        page = await browser.new_page(viewport={"width": 1400, "height": 800})
+        page = await browser.new_page(
+            viewport={"width": 1400, "height": 800}
+        )
 
-        await page.goto(url)
+        await page.goto(url, wait_until="networkidle")
         await page.wait_for_timeout(5000)
 
         await page.screenshot(path="chart.png")
