@@ -237,6 +237,7 @@ async def chart(ctx, ticker: str):
         # =========================
         # CHART
         # =========================
+        symbol_chart = symbol.replace(".JK", "")
         chart_file = get_chart(symbol_chart)
         
         if chart_file:
@@ -585,17 +586,5 @@ async def chart(ctx, ticker: str):
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
 
-        # =============================
-        # INSTALL PLAYWRIGHT BROWSER (Railway fix)
-        # =============================
-        import subprocess
-        import os
-        
-        if not os.path.exists("/root/.cache/ms-playwright"):
-            try:
-                subprocess.run(["python", "-m", "playwright", "install", "chromium"], check=True)
-                print("Playwright browser installed")
-            except Exception as e:
-                print("Playwright install failed:", e)
 
 bot.run(TOKEN)
