@@ -10,6 +10,7 @@ import numpy as np
 import os
 from playwright.async_api import async_playwright
 import asyncio
+import requests
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
