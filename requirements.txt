@@ -4,3 +4,4 @@ pandas
 mplfinance
 numpy
 matplotlib
+playwright==1.44.0
