@@ -461,12 +461,21 @@ async def chart(ctx, ticker: str):
             probability = 55
             
         # =========================
-        # CHART PREMIUM LAYOUT
+        # CHART LAYOUT
         # =========================
-        
+
+    
         apds = []
         
-        # RSI (panel 2) warna biru
+        # Volume manual di panel 1
+        vol_plot = mpf.make_addplot(
+            df["Volume"],
+            type="bar",
+            panel=1
+        )
+        apds.append(vol_plot)
+        
+        # RSI panel 2 (biru)
         rsi_plot = mpf.make_addplot(
             df["RSI"],
             panel=2,
@@ -475,7 +484,7 @@ async def chart(ctx, ticker: str):
         )
         apds.append(rsi_plot)
         
-        # STOCH (panel 3)
+        # STOCH panel 3
         k_plot = mpf.make_addplot(
             df["%K"],
             panel=3,
@@ -498,7 +507,6 @@ async def chart(ctx, ticker: str):
             df,
             type="candle",
             style="nightclouds",
-            volume=True,
             addplot=apds,
             panel_ratios=(4,1,1,1),
             figsize=(14,8),
@@ -513,7 +521,7 @@ async def chart(ctx, ticker: str):
             ax.grid(False)
         
         # =========================
-        # MOVE ALL Y-AXIS TO RIGHT
+        # FORCE Y-AXIS RIGHT
         # =========================
         
         for ax in axes:
@@ -521,14 +529,8 @@ async def chart(ctx, ticker: str):
             ax.yaxis.tick_right()
         
         # =========================
-        # PANEL LABEL FIX (INDEX PASTI BENAR)
+        # FIX PANEL LABELS
         # =========================
-        
-        # axes order:
-        # 0 = price
-        # 1 = volume
-        # 2 = rsi
-        # 3 = stoch
         
         axes[0].set_ylabel("Price")
         axes[1].set_ylabel("Vol")
@@ -536,7 +538,7 @@ async def chart(ctx, ticker: str):
         axes[3].set_ylabel("Stoch")
         
         # =========================
-        # DATE FORMAT DD/MM/YY
+        # DATE FORMAT
         # =========================
         
         import matplotlib.dates as mdates
