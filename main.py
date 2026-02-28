@@ -467,13 +467,30 @@ async def chart(ctx, ticker: str):
         
         apds = []
         
-        # RSI panel (panel 2)
-        rsi_plot = mpf.make_addplot(df["RSI"], panel=2)
+        # RSI (panel 2) warna biru
+        rsi_plot = mpf.make_addplot(
+            df["RSI"],
+            panel=2,
+            color="blue",
+            width=1.2
+        )
         apds.append(rsi_plot)
         
-        # Stochastic panel (panel 3)
-        k_plot = mpf.make_addplot(df["%K"], panel=3)
-        d_plot = mpf.make_addplot(df["%D"], panel=3)
+        # STOCH (panel 3)
+        k_plot = mpf.make_addplot(
+            df["%K"],
+            panel=3,
+            color="green",
+            width=1.2
+        )
+        
+        d_plot = mpf.make_addplot(
+            df["%D"],
+            panel=3,
+            color="red",
+            width=1.2
+        )
+        
         apds.extend([k_plot, d_plot])
         
         file_path = f"{symbol}_chart.png"
@@ -490,19 +507,41 @@ async def chart(ctx, ticker: str):
         )
         
         # =========================
-        # PANEL LABELS
+        # REMOVE GRID
         # =========================
+        
+        for ax in axes:
+            ax.grid(False)
+        
+        # =========================
+        # MOVE ALL Y-AXIS TO RIGHT
+        # =========================
+        
+        for ax in axes:
+            ax.yaxis.set_label_position("right")
+            ax.yaxis.tick_right()
+        
+        # =========================
+        # PANEL LABEL FIX (INDEX PASTI BENAR)
+        # =========================
+        
+        # axes order:
+        # 0 = price
+        # 1 = volume
+        # 2 = rsi
+        # 3 = stoch
         
         axes[0].set_ylabel("Price")
+        axes[1].set_ylabel("Vol")
         axes[2].set_ylabel("RSI")
         axes[3].set_ylabel("Stoch")
-        axes[1].set_ylabel("Vol")
         
         # =========================
-        # FORMAT TANGGAL DD/MM/YY
+        # DATE FORMAT DD/MM/YY
         # =========================
         
-        axes[-1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
+        import matplotlib.dates as mdates
+        axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
         
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
