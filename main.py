@@ -193,6 +193,21 @@ async def chart(ctx, ticker: str):
 
         await ctx.send(f"📥 {symbol}")
 
+        symbol_tv = symbol.replace(".JK", "")
+        tv_symbol = f"IDX:{symbol_tv}"
+        
+        chart_url = (
+            f"https://s.tradingview.com/widgetembed/?symbol={tv_symbol}"
+            f"&interval=D"
+            f"&theme=dark"
+            f"&style=1"
+            f"&hide_top_toolbar=1"
+            f"&hide_side_toolbar=1"
+            f"&grid=0"
+        )
+        
+        await ctx.send(chart_url)
+
         # =========================
         # DOWNLOAD DATA
         # =========================
