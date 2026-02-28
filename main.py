@@ -190,19 +190,33 @@ def get_chart(symbol):
     symbol = symbol.upper()
 
     url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&grid=0"
+    screenshot_api = f"https://api.microlink.io/?url={url}&screenshot=true&meta=false&embed=screenshot.url"
 
-    screenshot = f"https://api.microlink.io/?url={url}&screenshot=true&meta=false&embed=screenshot.url"
+    try:
+        r = requests.get(screenshot_api, timeout=30)
 
-    response = requests.get(screenshot, timeout=30).json()
+        if r.status_code != 200:
+            print("Microlink status:", r.status_code)
+            return None
 
-    image_url = response["data"]["screenshot"]["url"]
+        data = r.json()
 
-    img = requests.get(image_url)
+        if "data" not in data:
+            print("Invalid response:", data)
+            return None
 
-    with open("chart.png", "wb") as f:
-        f.write(img.content)
+        image_url = data["data"]["screenshot"]["url"]
 
-    return "chart.png"
+        img = requests.get(image_url)
+
+        with open("chart.png", "wb") as f:
+            f.write(img.content)
+
+        return "chart.png"
+
+    except Exception as e:
+        print("Chart error:", e)
+        return None
     
 @bot.command()
 async def chart(ctx, ticker: str):
@@ -222,9 +236,12 @@ async def chart(ctx, ticker: str):
         # =========================
         # CHART
         # =========================
-        symbol_chart = symbol.replace(".JK", "")
         chart_file = get_chart(symbol_chart)
-        await ctx.send(file=discord.File(chart_file))
+        
+        if chart_file:
+            await ctx.send(file=discord.File(chart_file))
+        else:
+            await ctx.send("⚠️ Chart gagal dimuat (API limit / blocked)")
         
         # =========================
         # DOWNLOAD DATA
