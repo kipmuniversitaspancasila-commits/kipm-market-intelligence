@@ -464,18 +464,9 @@ async def chart(ctx, ticker: str):
         # CHART LAYOUT
         # =========================
 
-    
         apds = []
         
-        # Volume manual di panel 1
-        vol_plot = mpf.make_addplot(
-            df["Volume"],
-            type="bar",
-            panel=1
-        )
-        apds.append(vol_plot)
-        
-        # RSI panel 2 (biru)
+        # RSI panel 2
         rsi_plot = mpf.make_addplot(
             df["RSI"],
             panel=2,
@@ -507,6 +498,7 @@ async def chart(ctx, ticker: str):
             df,
             type="candle",
             style="nightclouds",
+            volume=True,              
             addplot=apds,
             panel_ratios=(4,1,1,1),
             figsize=(14,8),
@@ -514,35 +506,36 @@ async def chart(ctx, ticker: str):
         )
         
         # =========================
-        # REMOVE GRID
+        # axes yang dipakai cuma index genap
+        # karena mplfinance bikin twin axis
         # =========================
         
-        for ax in axes:
+        main_axes = axes[::2]
+        
+        # 0 = price
+        # 1 = volume
+        # 2 = rsi
+        # 3 = stoch
+        
+        # REMOVE GRID
+        for ax in main_axes:
             ax.grid(False)
         
-        # =========================
-        # FORCE Y-AXIS RIGHT
-        # =========================
-        
-        for ax in axes:
+        # MOVE Y TO RIGHT
+        for ax in main_axes:
             ax.yaxis.set_label_position("right")
             ax.yaxis.tick_right()
         
-        # =========================
-        # FIX PANEL LABELS
-        # =========================
+        # FIX LABEL
+        main_axes[0].set_ylabel("Price")
+        main_axes[1].set_ylabel("Vol")
+        main_axes[2].set_ylabel("RSI")
+        main_axes[3].set_ylabel("Stoch")
         
-        axes[0].set_ylabel("Price")
-        axes[1].set_ylabel("Vol")
-        axes[2].set_ylabel("RSI")
-        axes[3].set_ylabel("Stoch")
-        
-        # =========================
-        # DATE FORMAT
-        # =========================
-        
+        # DATE FORMAT (horizontal)
         import matplotlib.dates as mdates
-        axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
+        main_axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
+        main_axes[3].tick_params(axis='x', rotation=0)
         
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
