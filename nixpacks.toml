@@ -1,5 +1,21 @@
 [phases.setup]
-nixPkgs = ["python311", "chromium"]
+nixPkgs = [
+  "chromium",
+  "nss",
+  "atk",
+  "atkmm",
+  "cups",
+  "gtk3",
+  "libdrm",
+  "libxkbcommon",
+  "libxcomposite",
+  "libxdamage",
+  "libxfixes",
+  "libxrandr",
+  "gbm",
+  "pango",
+  "cairo"
+]
 
 [phases.install]
 cmds = [
@@ -8,4 +24,4 @@ cmds = [
 ]
 
 [start]
-cmd = "bash start.sh"
+cmd = "python main.py"
