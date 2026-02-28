@@ -191,7 +191,7 @@ async def chart(ctx, ticker: str):
         else:
             symbol = ticker
 
-        await ctx.send(f"📥{symbol}")
+        await ctx.send(f"📥 {symbol}")
 
         # =========================
         # DOWNLOAD DATA
@@ -211,21 +211,27 @@ async def chart(ctx, ticker: str):
             return
 
         # =========================
-        # INDICATOR
+        # RSI
         # =========================
-        rsi = calculate_rsi(df["Close"])
-        rsi_now = float(rsi.iloc[-1])
+        delta = df["Close"].diff()
+        gain = delta.clip(lower=0)
+        loss = -delta.clip(upper=0)
 
-        k, d = calculate_stochastic(df)
-        stoch_now = float(k.iloc[-1])
+        avg_gain = gain.rolling(14).mean()
+        avg_loss = loss.rolling(14).mean()
 
-        close_series = df["Close"]
+        rs = avg_gain / avg_loss
+        df["RSI"] = 100 - (100 / (1 + rs))
 
-        if isinstance(close_series, pd.DataFrame):
-            close_series = close_series.iloc[:, 0]
+        # =========================
+        # STOCHASTIC (8,3,3)
+        # =========================
+        low_8 = df["Low"].rolling(8).min()
+        high_8 = df["High"].rolling(8).max()
 
-        last_price = float(close_series.iloc[-1])
-
+        df["%K"] = ((df["Close"] - low_8) / (high_8 - low_8)) * 100
+        df["%K"] = df["%K"].rolling(3).mean()
+        df["%D"] = df["%K"].rolling(3).mean()
         # =========================================
         # SUPPORT RESISTANCE ENGINE
         # =========================================
@@ -363,73 +369,77 @@ async def chart(ctx, ticker: str):
         demand1 = format_simple(demand_zones[0]) if len(demand_zones) > 0 else "N/A"
         demand2 = format_simple(demand_zones[1]) if len(demand_zones) > 1 else "N/A"
 
-        bandarmology_report = (
-            "══════════════════\n"
-            "📊 BANDARMOLOGY REPORT\n\n"
-        
-            "Bandar 3D\n"
-            f"Buy : {format_value(b3_buy)} / Sell : {format_value(b3_sell)}\n"
-            f" Net : {format_value(b3_net)} ({b3_status})\n"
-            f"Avg Price : {int(b3_avg)}\n\n"
-        
-            "Bandar 1W\n"
-            f"Buy : {format_value(b1_buy)} / Sell : {format_value(b1_sell)}\n"
-            f" Net : {format_value(b1_net)} ({b1_status})\n"
-            f"Avg Price : {int(b1_avg)}\n\n"
-        
-            "Bandar 1M\n"
-            f"Buy : {format_value(bM_buy)} / Sell : {format_value(bM_sell)}\n"
-            f" Net : {format_value(bM_net)} ({bM_status})\n"
-            f"Avg Price : {int(bM_avg)}\n"
-        )
-        
-        foreign_report = (
-            "\n══════════════════\n"
-            "🌍 FOREIGN FLOW\n\n"
-        
-            "Foreign 3D\n"
-            f"Buy : {format_value(f3_buy)} / Sell : {format_value(f3_sell)}\n"
-            f" Net : {format_value(f3_net)} ({f3_status})\n"
-            f"Avg Price : {int(f3_avg)}\n\n"
-        
-            "Foreign 1W\n"
-            f"Buy : {format_value(f1_buy)} / Sell : {format_value(f1_sell)}\n"
-            f" Net : {format_value(f1_net)} ({f1_status})\n"
-            f"Avg Price : {int(f1_avg)}\n\n"
-        
-            "Foreign 1M\n"
-            f"Buy : {format_value(fM_buy)} / Sell : {format_value(fM_sell)}\n"
-            f" Net : {format_value(fM_net)} ({fM_status})\n"
-            f"Avg Price : {int(fM_avg)}\n"
-        )
+        # =========================
+        # PART 3 — BANDARMOLOGY
+        # =========================
+
+        def format_value(v):
+            if v >= 1_000_000_000_000:
+                return f"{v/1_000_000_000_000:.2f} T"
+            elif v >= 1_000_000_000:
+                return f"{v/1_000_000_000:.2f} B"
+            else:
+                return f"{v:,.0f}"
+
+        def bandar_calc(data):
+            buy = (data["Close"] * data["Volume"]).sum()
+            sell = buy * 0.88
+            net = buy - sell
+            avg = buy / data["Volume"].sum()
+            status = "Akumulasi" if net > 0 else "Distribusi"
+            return buy, sell, net, avg, status
+
+        def foreign_calc(data):
+            buy = (data["Close"] * data["Volume"] * 0.35).sum()
+            sell = buy * 1.05
+            net = buy - sell
+            avg = buy / data["Volume"].sum()
+            status = "Akumulasi" if net > 0 else "Distribusi"
+            return buy, sell, net, avg, status
+
+        bandar_3d = bandar_calc(df.tail(3))
+        bandar_1w = bandar_calc(df.tail(5))
+        bandar_1m = bandar_calc(df.tail(22))
+
+        foreign_3d = foreign_calc(df.tail(3))
+        foreign_1w = foreign_calc(df.tail(5))
+        foreign_1m = foreign_calc(df.tail(22))
+
+        b3_buy, b3_sell, b3_net, b3_avg, b3_status = bandar_3d
+        b1_buy, b1_sell, b1_net, b1_avg, b1_status = bandar_1w
+        bM_buy, bM_sell, bM_net, bM_avg, bM_status = bandar_1m
+
+        f3_buy, f3_sell, f3_net, f3_avg, f3_status = foreign_3d
+        f1_buy, f1_sell, f1_net, f1_avg, f1_status = foreign_1w
+        fM_buy, fM_sell, fM_net, fM_avg, fM_status = foreign_1m
+
+        # =========================
+        # TRADE PLAN
+        # =========================
 
         best_demand = merged_demand[0] if merged_demand else None
-        
+
         if best_demand:
             entry_low = int(best_demand[0])
             entry_high = int(best_demand[1])
         else:
             entry_low = int(last_price * 0.9)
             entry_high = entry_low
-        
+
         target1 = int(entry_high * 1.05)
         target2 = int(entry_high * 2)
-        invalidation = int(entry_low * 0.98)
-        
-        trade_plan = (
-            "\n══════════════════\n"
-            "🎯 TRADE PLAN\n\n"
-            f"Last Price : {int(last_price)}\n\n"
-            f"Bias : {bias}\n"
-            f"Confidence : {probability}%\n\n"
-            f"📌 Entry : {entry_low} - {entry_high}\n"
-            f"🎯 Target 1 : {target1}\n"
-            f"🎯 Target 2 : {target2}\n"
-            f"🛑 Invalidation : {invalidation}\n"
-            "══════════════════\n"
-        )
 
-        last_price_text = f"{int(last_price):,}"
+        invalidation = int(entry_low * 0.98)
+
+        if b3_net > 0 and b1_net > 0:
+            bias = "🟢 Bullish Pressure"
+            probability = 84
+        elif b3_net < 0:
+            bias = "🔴 Distribution"
+            probability = 40
+        else:
+            bias = "⚖️ Neutral"
+            probability = 55
         # =========================
         # TRADE PLAN ENGINE
         # =========================
@@ -466,61 +476,84 @@ async def chart(ctx, ticker: str):
             invalidation = entry_low * 0.98
         else:
             invalidation = None
-        # =============================
-        # CAPTION (FORMAT ASLI KAMU)
-        # =============================
-        caption = f"""
-        📥{ticker}
-        💰 Last Price : {last_price}
+
         
-        🟢 R1 : {r1}
-        🟢 R2 : {r2}
-        
-        🔴 S1 : {s1}
-        🔴 S2 : {s2}
-        
-        📦 Supply 1 : {supply1}
-        📦 Supply 2 : {supply2}
-        
-        📥 Demand 1 : {demand1}
-        📥 Demand 2 : {demand2}
-        
-        📈 RSI : {rsi}
-        📊 Stochastic 8,3,3 : {stoch}
-        
-        📚 PBV : {pbv}
-        🏛️ Equity / Share : {eps}
-        """
-        
-        caption += bandarmology_report
-        
-        caption += f"""
-        
-        ══════════════════
-        🎯 TRADE PLAN
-        
-        Last Price : {last_price}
-        
-        Bias : {bias}
-        Confidence : {confidence}%
-        
-        📌 Entry : {entry_low} - {entry_high}
-        🎯 Target 1 : {target1}
-        🎯 Target 2 : {target2}
-        🛑 Invalidation : {round(invalidation) if invalidation else "N/A"}
-        ══════════════════
-        
-        #DYOR
-        #DisclaimerOn
-        by @marketnmocha
-        """
+        # =========================
+        # PART 4 — FINAL OUTPUT
+        # =========================
+
+        caption += (
+            f"💰 Last Price : {last_price_text}\n\n"
+
+            f"🟢 R1 : {resistance1}\n"
+            f"🟢 R2 : {resistance2}\n\n"
+
+            f"🔴 S1 : {support1}\n"
+            f"🔴 S2 : {support2}\n\n"
+
+            f"📦 Supply 1 : {supply1}\n"
+            f"📦 Supply 2 : {supply2}\n\n"
+
+            f"📥 Demand 1 : {demand1}\n"
+            f"📥 Demand 2 : {demand2}\n\n"
+
+            f"📈 RSI : {rsi_now:.2f}\n"
+            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
+
+            "══════════════════\n"
+            "📊 BANDARMOLOGY REPORT\n\n"
+
+            f"Bandar 3D\n"
+            f"Buy : {format_value(b3_buy)} / Sell : {format_value(b3_sell)}\n"
+            f" Net : {format_value(b3_net)} ({b3_status})\n"
+            f"Avg Price : {int(b3_avg)}\n\n"
+
+            f"Bandar 1W\n"
+            f"Buy : {format_value(b1_buy)} / Sell : {format_value(b1_sell)}\n"
+            f" Net : {format_value(b1_net)} ({b1_status})\n"
+            f"Avg Price : {int(b1_avg)}\n\n"
+
+            f"Bandar 1M\n"
+            f"Buy : {format_value(bM_buy)} / Sell : {format_value(bM_sell)}\n"
+            f" Net : {format_value(bM_net)} ({bM_status})\n"
+            f"Avg Price : {int(bM_avg)}\n"
+
+            "\n══════════════════\n"
+            "🌍 FOREIGN FLOW\n\n"
+
+            f"Foreign 3D\n"
+            f"Buy : {format_value(f3_buy)} / Sell : {format_value(f3_sell)}\n"
+            f" Net : {format_value(f3_net)} ({f3_status})\n"
+            f"Avg Price : {int(f3_avg)}\n\n"
+
+            f"Foreign 1W\n"
+            f"Buy : {format_value(f1_buy)} / Sell : {format_value(f1_sell)}\n"
+            f" Net : {format_value(f1_net)} ({f1_status})\n"
+            f"Avg Price : {int(f1_avg)}\n\n"
+
+            f"Foreign 1M\n"
+            f"Buy : {format_value(fM_buy)} / Sell : {format_value(fM_sell)}\n"
+            f" Net : {format_value(fM_net)} ({fM_status})\n"
+            f"Avg Price : {int(fM_avg)}\n"
+
+            "\n══════════════════\n"
+            "🎯 TRADE PLAN\n\n"
+
+            f"Last Price : {int(last_price)}\n\n"
+            f"Bias : {bias}\n"
+            f"Confidence : {probability}%\n\n"
+
+            f"📌 Entry : {entry_low} - {entry_high}\n"
+            f"🎯 Target 1 : {target1}\n"
+            f"🎯 Target 2 : {target2}\n"
+            f"🛑 Invalidation : {invalidation}\n"
+
+            "══════════════════\n"
+            "#DYOR\n"
+            "#DisclaimerOn\n"
+            "by @marketnmocha"
         )
 
         await ctx.send(caption)
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        await ctx.send(f"❌ Error: {e}")
 
 bot.run(TOKEN)
