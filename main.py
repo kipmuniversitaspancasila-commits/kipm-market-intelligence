@@ -188,9 +188,11 @@ async def capture_tradingview_chart(symbol):
     url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&hide_top_toolbar=1&hide_side_toolbar=1&grid=0"
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(args=["--no-sandbox"])
-        page = await browser.new_page(viewport={"width": 1400, "height": 800})
+        browser = await p.chromium.launch(
+            args=["--no-sandbox", "--disable-dev-shm-usage"]
+        )
 
+        page = await browser.new_page(viewport={"width": 1400, "height": 800})
         await page.goto(url)
         await page.wait_for_timeout(4000)
 
