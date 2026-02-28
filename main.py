@@ -529,4 +529,7 @@ async def chart(ctx, ticker: str):
 
         await ctx.send(caption)
 
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
+
 bot.run(TOKEN)
