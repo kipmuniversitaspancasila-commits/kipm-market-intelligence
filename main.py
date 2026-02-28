@@ -196,17 +196,9 @@ async def chart(ctx, ticker: str):
         symbol_tv = symbol.replace(".JK", "")
         tv_symbol = f"IDX:{symbol_tv}"
         
-        chart_url = (
-            f"https://s.tradingview.com/widgetembed/?symbol={tv_symbol}"
-            f"&interval=D"
-            f"&theme=dark"
-            f"&style=1"
-            f"&hide_top_toolbar=1"
-            f"&hide_side_toolbar=1"
-            f"&grid=0"
-        )
+        image_url = f"https://charts2-node.tradingview.com/snapshot?symbol={tv_symbol}&interval=1D&theme=dark"
         
-        await ctx.send(chart_url)
+        await ctx.send(image_url)
 
         # =========================
         # DOWNLOAD DATA
