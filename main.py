@@ -210,12 +210,14 @@ async def chart(ctx, ticker: str):
             symbol = ticker
 
         await ctx.send(f"📥 {symbol}")
+        
         # =========================
         # CHART
         # =========================
-        # symbol_chart = symbol.replace(".JK", "")
-        # chart_file = await capture_tradingview_chart(symbol_chart)
-        # await ctx.send(file=discord.File(chart_file))
+         symbol_chart = symbol.replace(".JK", "")
+         chart_file = await capture_tradingview_chart(symbol_chart)
+         await ctx.send(file=discord.File(chart_file))
+        
         # =========================
         # DOWNLOAD DATA
         # =========================
