@@ -8,9 +8,6 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import os
-from playwright.async_api import async_playwright
-import asyncio
-import requests
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -181,43 +178,6 @@ def detect_bias(supply_zones, demand_zones, rsi):
 
     return "⚖️ Neutral"
 
-# =========================
-# CHART TV
-# =========================
-
-import requests
-
-def get_chart(symbol):
-    symbol = symbol.upper()
-
-    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&grid=0"
-    screenshot_api = f"https://api.microlink.io/?url={url}&screenshot=true&meta=false&embed=screenshot.url"
-
-    try:
-        r = requests.get(screenshot_api, timeout=30)
-
-        if r.status_code != 200:
-            print("Microlink status:", r.status_code)
-            return None
-
-        data = r.json()
-
-        if "data" not in data:
-            print("Invalid response:", data)
-            return None
-
-        image_url = data["data"]["screenshot"]["url"]
-
-        img = requests.get(image_url)
-
-        with open("chart.png", "wb") as f:
-            f.write(img.content)
-
-        return "chart.png"
-
-    except Exception as e:
-        print("Chart error:", e)
-        return None
     
 @bot.command()
 async def chart(ctx, ticker: str):
@@ -234,16 +194,6 @@ async def chart(ctx, ticker: str):
 
         await ctx.send(f"📥 {symbol}")
         
-        # =========================
-        # CHART
-        # =========================
-        symbol_chart = symbol.replace(".JK", "")
-        chart_file = get_chart(symbol_chart)
-        
-        if chart_file:
-            await ctx.send(file=discord.File(chart_file))
-        else:
-            await ctx.send("⚠️ Chart gagal dimuat (API limit / blocked)")
         
         # =========================
         # DOWNLOAD DATA
@@ -507,7 +457,32 @@ async def chart(ctx, ticker: str):
         else:
             bias = "⚖️ Neutral"
             probability = 55
-        
+        # =========================
+        # CHART INTERNAL
+        # =========================
+
+        apds = []
+
+        rsi_panel = mpf.make_addplot(df["RSI"], panel=1)
+        apds.append(rsi_panel)
+
+        k_panel = mpf.make_addplot(df["%K"], panel=2)
+        d_panel = mpf.make_addplot(df["%D"], panel=2)
+        apds.extend([k_panel, d_panel])
+
+        file_path = f"{symbol}.png"
+
+        mpf.plot(
+            df,
+            type="candle",
+            style="charles",
+            addplot=apds,
+            volume=True,
+            panel_ratios=(3,1,1),
+            savefig=file_path
+        )
+
+        await ctx.send(file=discord.File(file_path))
         
         caption += (
             f"💰 Last Price : {int(last_price):,}\n\n"
