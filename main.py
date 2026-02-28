@@ -562,66 +562,48 @@ async def chart(ctx, ticker: str):
             f"🔴 S1 : {support1}\n"
             f"🔴 S2 : {support2}\n\n"
         
-            f"📦 Supply 1 : {supply1}\n"
-            f"📦 Supply 2 : {supply2}\n\n"
-        
-            f"📥 Demand 1 : {demand1}\n"
-            f"📥 Demand 2 : {demand2}\n\n"
+            f"📦 Supply : {supply1} | {supply2}\n"
+            f"📥 Demand : {demand1} | {demand2}\n\n"
         
             f"📈 RSI : {rsi_now:.2f}\n"
-            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
+            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
         
-            "\n══════════════════\n"
-            "📊 BANDARMOLOGY REPORT\n\n"
+            "══════════════════\n"
+            "📊 BANDARMOLOGY\n"
         
-            f"Bandar 3D\n"
-            f"Buy : {format_value(b3_buy)} / Sell : {format_value(b3_sell)}\n"
-            f" Net : {format_value(b3_net)} ({b3_status})\n"
-            f"Avg Price : {int(b3_avg)}\n\n"
+            f"Bandar 3D // Buy : {format_value(b3_buy)} / Sell : {format_value(b3_sell)} "
+            f"// Net : {format_value(b3_net)} ({b3_status}) Avg : {int(b3_avg)}\n"
         
-            f"Bandar 1W\n"
-            f"Buy : {format_value(b1_buy)} / Sell : {format_value(b1_sell)}\n"
-            f" Net : {format_value(b1_net)} ({b1_status})\n"
-            f"Avg Price : {int(b1_avg)}\n\n"
+            f"Bandar 1W // Buy : {format_value(b1_buy)} / Sell : {format_value(b1_sell)} "
+            f"// Net : {format_value(b1_net)} ({b1_status}) Avg : {int(b1_avg)}\n"
         
-            f"Bandar 1M\n"
-            f"Buy : {format_value(bM_buy)} / Sell : {format_value(bM_sell)}\n"
-            f" Net : {format_value(bM_net)} ({bM_status})\n"
-            f"Avg Price : {int(bM_avg)}\n"
+            f"Bandar 1M // Buy : {format_value(bM_buy)} / Sell : {format_value(bM_sell)} "
+            f"// Net : {format_value(bM_net)} ({bM_status}) Avg : {int(bM_avg)}\n\n"
         
-            "\n══════════════════\n"
-            "🌍 FOREIGN FLOW\n\n"
+            "══════════════════\n"
+            "🌍 FOREIGN FLOW\n"
         
-            f"Foreign 3D\n"
-            f"Buy : {format_value(f3_buy)} / Sell : {format_value(f3_sell)}\n"
-            f" Net : {format_value(f3_net)} ({f3_status})\n"
-            f"Avg Price : {int(f3_avg)}\n\n"
+            f"Foreign 3D // Buy : {format_value(f3_buy)} / Sell : {format_value(f3_sell)} "
+            f"// Net : {format_value(f3_net)} ({f3_status}) Avg : {int(f3_avg)}\n"
         
-            f"Foreign 1W\n"
-            f"Buy : {format_value(f1_buy)} / Sell : {format_value(f1_sell)}\n"
-            f" Net : {format_value(f1_net)} ({f1_status})\n"
-            f"Avg Price : {int(f1_avg)}\n\n"
+            f"Foreign 1W // Buy : {format_value(f1_buy)} / Sell : {format_value(f1_sell)} "
+            f"// Net : {format_value(f1_net)} ({f1_status}) Avg : {int(f1_avg)}\n"
         
-            f"Foreign 1M\n"
-            f"Buy : {format_value(fM_buy)} / Sell : {format_value(fM_sell)}\n"
-            f" Net : {format_value(fM_net)} ({fM_status})\n"
-            f"Avg Price : {int(fM_avg)}\n"
+            f"Foreign 1M // Buy : {format_value(fM_buy)} / Sell : {format_value(fM_sell)} "
+            f"// Net : {format_value(fM_net)} ({fM_status}) Avg : {int(fM_avg)}\n\n"
         
-            "\n══════════════════\n"
+            "══════════════════\n"
             "🎯 TRADE PLAN\n\n"
         
-            f"Last Price : {int(last_price)}\n\n"
             f"Bias : {bias}\n"
             f"Confidence : {probability}%\n\n"
         
             f"📌 Entry : {entry_low} - {entry_high}\n"
             f"🎯 Target 1 : {target1}\n"
             f"🎯 Target 2 : {target2}\n"
-            f"🛑 Invalidation : {invalidation}\n"
+            f"🛑 Invalidation : {invalidation}\n\n"
         
-            "══════════════════\n"
-            "#DYOR\n"
-            "#DisclaimerOn\n"
+            "#DYOR | #DisclaimerOn\n"
             "by @marketnmocha"
         )
 
