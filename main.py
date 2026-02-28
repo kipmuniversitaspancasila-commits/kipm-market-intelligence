@@ -296,48 +296,47 @@ async def chart(ctx, ticker: str):
         merged_supply = merge_zones(supply_zones)
         merged_demand = merge_zones(demand_zones)
 
-        # =========================================
+        # =========================
         # BANDARMOLOGY ENGINE
-        # =========================================
-        def format_value(v):
-            if v >= 1_000_000_000_000:
-                return f"{v/1_000_000_000_000:.2f} T"
-            elif v >= 1_000_000_000:
-                return f"{v/1_000_000_000:.2f} B"
-            else:
-                return f"{v:,.0f}"
+        # =========================
         
-        def bandar_engine(data):
-            buy = (data["Close"] * data["Volume"]).sum()
-            sell = buy * 0.88
-            net = buy - sell
-            avg = buy / data["Volume"].sum()
-            status = "Akumulasi" if net > 0 else "Distribusi"
-            return buy, sell, net, avg, status
+        bandarmology_report = f"""
+        ══════════════════
+        📊 BANDARMOLOGY REPORT
         
-        def foreign_engine(data):
-            buy = (data["Volume"] * data["Close"] * 0.35).sum()
-            sell = buy * 1.05
-            net = buy - sell
-            avg = buy / data["Volume"].sum()
-            status = "Akumulasi" if net > 0 else "Distribusi"
-            return buy, sell, net, avg, status
+        Bandar 3D
+        Buy : {bandar_3d_buy} / Sell : {bandar_3d_sell}
+         Net : {bandar_3d_net} ({bandar_3d_status})
+        Avg Price : {bandar_3d_avg}
         
-        bandar_3d = bandar_engine(df.tail(min(len(df), 3)))
-        bandar_1w = bandar_engine(df.tail(min(len(df), 5)))
-        bandar_1m = bandar_engine(df.tail(min(len(df), 22)))
+        Bandar 1W
+        Buy : {bandar_1w_buy} / Sell : {bandar_1w_sell}
+         Net : {bandar_1w_net} ({bandar_1w_status})
+        Avg Price : {bandar_1w_avg}
         
-        foreign_3d = foreign_engine(df.tail(min(len(df), 3)))
-        foreign_1w = foreign_engine(df.tail(min(len(df), 5)))
-        foreign_1m = foreign_engine(df.tail(min(len(df), 22)))
+        Bandar 1M
+        Buy : {bandar_1m_buy} / Sell : {bandar_1m_sell}
+         Net : {bandar_1m_net} ({bandar_1m_status})
+        Avg Price : {bandar_1m_avg}
         
-        b3_buy, b3_sell, b3_net, b3_avg, b3_status = bandar_3d
-        b1_buy, b1_sell, b1_net, b1_avg, b1_status = bandar_1w
-        bM_buy, bM_sell, bM_net, bM_avg, bM_status = bandar_1m
+        ══════════════════
+        🌍 FOREIGN FLOW
         
-        f3_buy, f3_sell, f3_net, f3_avg, f3_status = foreign_3d
-        f1_buy, f1_sell, f1_net, f1_avg, f1_status = foreign_1w
-        fM_buy, fM_sell, fM_net, fM_avg, fM_status = foreign_1m
+        Foreign 3D
+        Buy : {foreign_3d_buy} / Sell : {foreign_3d_sell}
+         Net : {foreign_3d_net} ({foreign_3d_status})
+        Avg Price : {foreign_3d_avg}
+        
+        Foreign 1W
+        Buy : {foreign_1w_buy} / Sell : {foreign_1w_sell}
+         Net : {foreign_1w_net} ({foreign_1w_status})
+        Avg Price : {foreign_1w_avg}
+        
+        Foreign 1M
+        Buy : {foreign_1m_buy} / Sell : {foreign_1m_sell}
+         Net : {foreign_1m_net} ({foreign_1m_status})
+        Avg Price : {foreign_1m_avg}
+        """
 
         # =============================
         # FORMAT ZONE
@@ -431,35 +430,90 @@ async def chart(ctx, ticker: str):
         )
 
         last_price_text = f"{int(last_price):,}"
-
+        # =========================
+        # TRADE PLAN ENGINE
+        # =========================
+        
+        if best_demand:
+            entry_low = best_demand[0]
+            entry_high = best_demand[1]
+        else:
+            entry_low = None
+            entry_high = None
+        
+        if best_supply:
+            target1 = best_supply[0]
+            target2 = best_supply[1]
+        else:
+            target1 = None
+            target2 = None
+        
+        
+        # menentukan bias
+        if bandar_3d_net > 0 and bandar_1w_net > 0:
+            bias = "🟢 Bullish Pressure"
+            confidence = 84
+        elif bandar_3d_net < 0:
+            bias = "🔴 Distribution"
+            confidence = 40
+        else:
+            bias = "⚖️ Neutral"
+            confidence = 50
+        
+        
+        # invalidation
+        if entry_low:
+            invalidation = entry_low * 0.98
+        else:
+            invalidation = None
         # =============================
         # CAPTION (FORMAT ASLI KAMU)
         # =============================
-        caption = (
-            f"💰 Last Price : {last_price_text}\n\n"
+        caption = f"""
+        📥{ticker}
+        💰 Last Price : {last_price}
         
-            f"🟢 R1 : {resistance1}\n"
-            f"🟢 R2 : {resistance2}\n\n"
+        🟢 R1 : {r1}
+        🟢 R2 : {r2}
         
-            f"🔴 S1 : {support1}\n"
-            f"🔴 S2 : {support2}\n\n"
+        🔴 S1 : {s1}
+        🔴 S2 : {s2}
         
-            f"📦 Supply 1 : {supply1}\n"
-            f"📦 Supply 2 : {supply2}\n\n"
+        📦 Supply 1 : {supply1}
+        📦 Supply 2 : {supply2}
         
-            f"📥 Demand 1 : {demand1}\n"
-            f"📥 Demand 2 : {demand2}\n\n"
+        📥 Demand 1 : {demand1}
+        📥 Demand 2 : {demand2}
         
-            f"📈 RSI : {rsi_now:.2f}\n"
-            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
+        📈 RSI : {rsi}
+        📊 Stochastic 8,3,3 : {stoch}
         
-            f"{bandarmology_report}"
-            f"{foreign_report}"
-            f"{trade_plan}"
+        📚 PBV : {pbv}
+        🏛️ Equity / Share : {eps}
+        """
         
-            "#DYOR\n"
-            "#DisclaimerOn\n"
-            "by @marketnmocha"
+        caption += bandarmology_report
+        
+        caption += f"""
+        
+        ══════════════════
+        🎯 TRADE PLAN
+        
+        Last Price : {last_price}
+        
+        Bias : {bias}
+        Confidence : {confidence}%
+        
+        📌 Entry : {entry_low} - {entry_high}
+        🎯 Target 1 : {target1}
+        🎯 Target 2 : {target2}
+        🛑 Invalidation : {round(invalidation) if invalidation else "N/A"}
+        ══════════════════
+        
+        #DYOR
+        #DisclaimerOn
+        by @marketnmocha
+        """
         )
 
         await ctx.send(caption)
