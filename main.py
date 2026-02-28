@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import os
 import mplfinance as mpf
+import matplotlib.dates as mdates
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -458,31 +459,53 @@ async def chart(ctx, ticker: str):
         else:
             bias = "⚖️ Neutral"
             probability = 55
+            
         # =========================
-        # CHART INTERNAL
+        # CHART PREMIUM LAYOUT
         # =========================
-
+        
         apds = []
-
-        rsi_panel = mpf.make_addplot(df["RSI"], panel=1)
-        apds.append(rsi_panel)
-
-        k_panel = mpf.make_addplot(df["%K"], panel=2)
-        d_panel = mpf.make_addplot(df["%D"], panel=2)
-        apds.extend([k_panel, d_panel])
-
-        file_path = f"{symbol}.png"
-
-        mpf.plot(
+        
+        # RSI panel (panel 2)
+        rsi_plot = mpf.make_addplot(df["RSI"], panel=2)
+        apds.append(rsi_plot)
+        
+        # Stochastic panel (panel 3)
+        k_plot = mpf.make_addplot(df["%K"], panel=3)
+        d_plot = mpf.make_addplot(df["%D"], panel=3)
+        apds.extend([k_plot, d_plot])
+        
+        file_path = f"{symbol}_chart.png"
+        
+        fig, axes = mpf.plot(
             df,
             type="candle",
-            style="charles",
-            addplot=apds,
+            style="nightclouds",
             volume=True,
-            panel_ratios=(3,1,1),
-            savefig=file_path
+            addplot=apds,
+            panel_ratios=(4,1,1,1),
+            figsize=(14,8),
+            returnfig=True
         )
-
+        
+        # =========================
+        # PANEL LABELS
+        # =========================
+        
+        axes[0].set_ylabel("Price")
+        axes[2].set_ylabel("RSI")
+        axes[3].set_ylabel("Stoch")
+        axes[1].set_ylabel("Vol")
+        
+        # =========================
+        # FORMAT TANGGAL DD/MM/YY
+        # =========================
+        
+        axes[-1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
+        
+        fig.savefig(file_path, bbox_inches="tight")
+        plt.close(fig)
+        
         await ctx.send(file=discord.File(file_path))
         
         caption += (
