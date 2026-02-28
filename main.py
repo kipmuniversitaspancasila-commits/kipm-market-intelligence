@@ -245,6 +245,30 @@ async def chart(ctx, ticker: str):
             close_series = close_series.iloc[:, 0]
         
         last_price = float(close_series.iloc[-1])
+
+        # =========================
+        # FUNDAMENTAL DATA
+        # =========================
+        try:
+            stock = yf.Ticker(symbol)
+            info = stock.info
+
+            pbv = info.get("priceToBook", None)
+            book_value = info.get("bookValue", None)
+
+            if pbv is not None:
+                pbv_text = f"{pbv:.2f}"
+            else:
+                pbv_text = "N/A"
+
+            if book_value is not None:
+                book_value_text = f"{book_value:,.2f}"
+            else:
+                book_value_text = "N/A"
+
+        except:
+            pbv_text = "N/A"
+            book_value_text = "N/A"
         
         # =========================================
         # SUPPORT RESISTANCE ENGINE
@@ -567,6 +591,11 @@ async def chart(ctx, ticker: str):
         
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
+
+            "══════════════════\n"
+            "📚 FUNDAMENTAL\n"
+            f"PBV : {pbv_text}\n"
+            f"Equity / Share : {book_value_text}\n\n"
         
             "══════════════════\n"
             "📊 BANDARMOLOGY\n"
@@ -580,7 +609,6 @@ async def chart(ctx, ticker: str):
             f"Bandar 1M // Buy : {format_value(bM_buy)} / Sell : {format_value(bM_sell)} "
             f"// Net : {format_value(bM_net)} ({bM_status}) Avg : {int(bM_avg)}\n\n"
         
-            "══════════════════\n"
             "🌍 FOREIGN FLOW\n"
         
             f"Foreign 3D // Buy : {format_value(f3_buy)} / Sell : {format_value(f3_sell)} "
@@ -605,6 +633,7 @@ async def chart(ctx, ticker: str):
         
             "#DYOR | #DisclaimerOn\n"
             "by @marketnmocha"
+            "══════════════════\n"
         )
 
         await ctx.send(caption)
