@@ -184,30 +184,15 @@ def detect_bias(supply_zones, demand_zones, rsi):
 # CHART TV
 # =========================
 
-async def capture_tradingview_chart(symbol):
-    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&grid=0"
+import requests
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--single-process"
-            ]
-        )
+def get_tradingview_chart(symbol):
+    image_url = f"https://s3.tradingview.com/snapshots/i/idx-{symbol.lower()}.png"
 
-        page = await browser.new_page(
-            viewport={"width": 1400, "height": 800}
-        )
+    img = requests.get(image_url)
 
-        await page.goto(url, wait_until="networkidle")
-        await page.wait_for_timeout(5000)
-
-        await page.screenshot(path="chart.png")
-
-        await browser.close()
+    with open("chart.png", "wb") as f:
+        f.write(img.content)
 
     return "chart.png"
     
@@ -228,9 +213,9 @@ async def chart(ctx, ticker: str):
         # =========================
         # CHART
         # =========================
-        symbol_chart = symbol.replace(".JK", "")
-        chart_file = await capture_tradingview_chart(symbol_chart)
-        await ctx.send(file=discord.File(chart_file))
+        # symbol_chart = symbol.replace(".JK", "")
+        # chart_file = await capture_tradingview_chart(symbol_chart)
+        # await ctx.send(file=discord.File(chart_file))
         # =========================
         # DOWNLOAD DATA
         # =========================
