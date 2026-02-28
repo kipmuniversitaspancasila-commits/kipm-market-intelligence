@@ -187,11 +187,17 @@ def detect_bias(supply_zones, demand_zones, rsi):
 import requests
 
 def get_chart(symbol):
-    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&grid=0"
-    
-    screenshot_url = f"https://image.thum.io/get/width/1400/crop/800/{url}"
+    symbol = symbol.upper()
 
-    img = requests.get(screenshot_url, timeout=20)
+    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&grid=0"
+
+    screenshot = f"https://api.microlink.io/?url={url}&screenshot=true&meta=false&embed=screenshot.url"
+
+    response = requests.get(screenshot, timeout=30).json()
+
+    image_url = response["data"]["screenshot"]["url"]
+
+    img = requests.get(image_url)
 
     with open("chart.png", "wb") as f:
         f.write(img.content)
