@@ -186,10 +186,12 @@ def detect_bias(supply_zones, demand_zones, rsi):
 
 import requests
 
-def get_tradingview_chart(symbol):
-    image_url = f"https://s3.tradingview.com/snapshots/i/idx-{symbol.lower()}.png"
+def get_chart(symbol):
+    url = f"https://s.tradingview.com/widgetembed/?symbol=IDX:{symbol}&interval=D&theme=dark&style=1&grid=0"
+    
+    screenshot_url = f"https://image.thum.io/get/width/1400/crop/800/{url}"
 
-    img = requests.get(image_url)
+    img = requests.get(screenshot_url, timeout=20)
 
     with open("chart.png", "wb") as f:
         f.write(img.content)
@@ -214,9 +216,9 @@ async def chart(ctx, ticker: str):
         # =========================
         # CHART
         # =========================
-         symbol_chart = symbol.replace(".JK", "")
-         chart_file = await capture_tradingview_chart(symbol_chart)
-         await ctx.send(file=discord.File(chart_file))
+        symbol_chart = symbol.replace(".JK", "")
+        chart_file = get_chart(symbol_chart)
+        await ctx.send(file=discord.File(chart_file))
         
         # =========================
         # DOWNLOAD DATA
