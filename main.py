@@ -646,49 +646,30 @@ async def chart(ctx, ticker: str):
         f3_buy, f3_sell, f3_net, f3_avg, f3_status = foreign_3d
         f1_buy, f1_sell, f1_net, f1_avg, f1_status = foreign_1w
         fM_buy, fM_sell, fM_net, fM_avg, fM_status = foreign_1m
+
         # =========================
-        # PART 3 — BANDARMOLOGY
+        # BANDAR & FOREIGN FORMAT (DISPLAY ONLY)
         # =========================
-
-        def format_value(v):
-            if v >= 1_000_000_000_000:
-                return f"{v/1_000_000_000_000:.2f} T"
-            elif v >= 1_000_000_000:
-                return f"{v/1_000_000_000:.2f} B"
-            else:
-                return f"{v:,.0f}"
-
-        def bandar_calc(data):
-            buy = (data["Close"] * data["Volume"]).sum()
-            sell = buy * 0.88
-            net = buy - sell
-            avg = buy / data["Volume"].sum()
-            status = "Akumulasi" if net > 0 else "Distribusi"
-            return buy, sell, net, avg, status
-
-        def foreign_calc(data):
-            buy = (data["Close"] * data["Volume"] * 0.35).sum()
-            sell = buy * 1.05
-            net = buy - sell
-            avg = buy / data["Volume"].sum()
-            status = "Akumulasi" if net > 0 else "Distribusi"
-            return buy, sell, net, avg, status
-
-        bandar_3d = bandar_calc(df.tail(3))
-        bandar_1w = bandar_calc(df.tail(5))
-        bandar_1m = bandar_calc(df.tail(22))
-
-        foreign_3d = foreign_calc(df.tail(3))
-        foreign_1w = foreign_calc(df.tail(5))
-        foreign_1m = foreign_calc(df.tail(22))
-
-        b3_buy, b3_sell, b3_net, b3_avg, b3_status = bandar_3d
-        b1_buy, b1_sell, b1_net, b1_avg, b1_status = bandar_1w
-        bM_buy, bM_sell, bM_net, bM_avg, bM_status = bandar_1m
-
-        f3_buy, f3_sell, f3_net, f3_avg, f3_status = foreign_3d
-        f1_buy, f1_sell, f1_net, f1_avg, f1_status = foreign_1w
-        fM_buy, fM_sell, fM_net, fM_avg, fM_status = foreign_1m
+        
+        def flow_state(net):
+            return "Akumulasi" if net > 0 else "Distribusi"
+        
+        def format_net(v):
+            sign = "+" if v > 0 else ""
+            return f"{sign}{format_value(v)}"
+        
+        bandar_text = (
+            "📊 BANDARMOLOGY\n"
+            f"3D // {format_net(b3_net)}  @{int(b3_avg)} ({flow_state(b3_net)})\n"
+            f"1W // {format_net(b1_net)} @{int(b1_avg)} ({flow_state(b1_net)})\n"
+            f"1M // {format_net(bM_net)} @{int(bM_avg)} ({flow_state(bM_net)})"
+        )
+        
+        foreign_text = (
+            "🌍 FOREIGN FLOW\n"
+            f"3D // {format_net(f3_net)}  @{int(f3_avg)} ({flow_state(f3_net)})\n"
+            f"1W // {format_net(f1_net)} @{int(f1_avg)} ({flow_state(f1_net)})\n"
+            f"1M // {format_net(fM_net)} @{int(fM_avg)} ({flow_state(fM_net)})"
 
         # =========================
         # MARKET CONTEXT
@@ -879,28 +860,8 @@ async def chart(ctx, ticker: str):
             f"PBV : {pbv_text}\n"
             f"Equity / Share : {book_value_text}\n"
             "══════════════════\n"
-            "📊 BANDARMOLOGY\n"
-        
-            f"Bandar 3D // Buy : {format_value(b3_buy)} / Sell : {format_value(b3_sell)} "
-            f"// Net : {format_value(b3_net)} ({b3_status}) Avg : {int(b3_avg)}\n"
-        
-            f"Bandar 1W // Buy : {format_value(b1_buy)} / Sell : {format_value(b1_sell)} "
-            f"// Net : {format_value(b1_net)} ({b1_status}) Avg : {int(b1_avg)}\n"
-        
-            f"Bandar 1M // Buy : {format_value(bM_buy)} / Sell : {format_value(bM_sell)} "
-            f"// Net : {format_value(bM_net)} ({bM_status}) Avg : {int(bM_avg)}\n\n"
-        
-            "🌍 FOREIGN FLOW\n"
-        
-            f"Foreign 3D // Buy : {format_value(f3_buy)} / Sell : {format_value(f3_sell)} "
-            f"// Net : {format_value(f3_net)} ({f3_status}) Avg : {int(f3_avg)}\n"
-        
-            f"Foreign 1W // Buy : {format_value(f1_buy)} / Sell : {format_value(f1_sell)} "
-            f"// Net : {format_value(f1_net)} ({f1_status}) Avg : {int(f1_avg)}\n"
-        
-            f"Foreign 1M // Buy : {format_value(fM_buy)} / Sell : {format_value(fM_sell)} "
-            f"// Net : {format_value(fM_net)} ({fM_status}) Avg : {int(fM_avg)}\n"
-        
+            f"{bandar_text}\n\n"
+            f"{foreign_text}\n"
             "══════════════════\n"
             "🎯 TRADE PLAN\n\n"
             f"💰 Last Price : {price_tick(last_price):,}\n"
