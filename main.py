@@ -1095,7 +1095,7 @@ async def chart(ctx, ticker: str):
         
         main_axes[0].text(
             0.99,
-            0.99
+            0.99,
             "@marketnmocha",
             transform=main_axes[0].transAxes,
             fontsize=10,
