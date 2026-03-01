@@ -670,7 +670,7 @@ async def chart(ctx, ticker: str):
             f"3D // {format_net(f3_net)}  @{int(f3_avg)} ({flow_state(f3_net)})\n"
             f"1W // {format_net(f1_net)} @{int(f1_avg)} ({flow_state(f1_net)})\n"
             f"1M // {format_net(fM_net)} @{int(fM_avg)} ({flow_state(fM_net)})"
-
+        )
         # =========================
         # MARKET CONTEXT
         # =========================
