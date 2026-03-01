@@ -295,7 +295,61 @@ async def chart(ctx, ticker: str):
         if df_full.empty:
             await ctx.send("Data historis penuh tidak tersedia.")
             return
+
+        # =========================
+        # CONTEXT ENGINE (SWING STRUCTURE)
+        # =========================
+        
+        def detect_swings(df, lookback=3):
+            swing_highs = []
+            swing_lows = []
+        
+            for i in range(lookback, len(df)-lookback):
+                high = df["High"].iloc[i]
+                low = df["Low"].iloc[i]
+        
+                if high == max(df["High"].iloc[i-lookback:i+lookback+1]):
+                    swing_highs.append((i, high))
+        
+                if low == min(df["Low"].iloc[i-lookback:i+lookback+1]):
+                    swing_lows.append((i, low))
+        
+            return swing_highs, swing_lows
+        
+        
+        swing_highs, swing_lows = detect_swings(df_full, lookback=3)
+        
+        last_price = float(df_full["Close"].iloc[-1])
+        
+        structure_bias = "Undefined"
+        
+        if len(swing_highs) >= 2 and len(swing_lows) >= 2:
+            last_high = swing_highs[-1][1]
+            prev_high = swing_highs[-2][1]
+        
+            last_low = swing_lows[-1][1]
+            prev_low = swing_lows[-2][1]
+        
+            if last_high > prev_high and last_low > prev_low:
+                structure_bias = "Bullish Structure"
+        
+            elif last_high < prev_high and last_low < prev_low:
+                structure_bias = "Bearish Structure"
+        
+            else:
+                structure_bias = "Range / Pullback"
+
+            ath = df_full["High"].max()
+            atl = df_full["Low"].min()
             
+            if last_price >= ath * 0.98:
+                market_location = "Near ATH"
+            elif last_price <= atl * 1.02:
+                market_location = "Near ATL"
+            else:
+                market_location = "Inside Range"
+            
+            context_summary = f"{market_location} | {structure_bias}"
 
         # =========================
         # RSI
