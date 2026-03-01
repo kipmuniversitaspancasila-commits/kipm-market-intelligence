@@ -115,6 +115,28 @@ def price_tick(price: float) -> int:
     return int(round(price / tick) * tick)
 
 # ===============================
+# FUNDAMENTAL SANITIZER
+# ===============================
+def sanitize_pbv(pbv):
+    try:
+        pbv = float(pbv)
+        if pbv <= 0 or pbv > 100 or pbv < -25:
+            return "N/A"
+        return f"{pbv:.2f}"
+    except:
+        return "N/A"
+
+
+def sanitize_equity_per_share(eq):
+    try:
+        eq = float(eq)
+        if eq <= 0 or eq < 10:
+            return "N/A"
+        return f"{eq:,.2f}"
+    except:
+        return "N/A"
+
+# ===============================
 # LIQUIDITY SWEEP
 # ===============================
 def detect_liquidity_sweep(df):
@@ -334,26 +356,11 @@ async def chart(ctx, ticker: str):
         # =========================
         # FUNDAMENTAL DATA
         # =========================
-        try:
-            stock = yf.Ticker(symbol)
-            info = stock.info
-
-            pbv = info.get("priceToBook", None)
-            book_value = info.get("bookValue", None)
-
-            if pbv is not None:
-                pbv_text = f"{pbv:.2f}"
-            else:
-                pbv_text = "N/A"
-
-            if book_value is not None:
-                book_value_text = f"{book_value:,.2f}"
-            else:
-                book_value_text = "N/A"
-
-        except:
-            pbv_text = "N/A"
-            book_value_text = "N/A"
+        pbv_raw = info.get("priceToBook", None)
+        equity_raw = info.get("bookValue", None)
+        
+        pbv_text = sanitize_pbv(pbv_raw)
+        book_value_text = sanitize_equity_per_share(equity_raw)
         
         # =========================================
         # SUPPORT RESISTANCE ENGINE
