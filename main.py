@@ -72,6 +72,30 @@ def merge_zones(zones, tolerance=0.02):
     return merged
 
 # ===============================
+# FAIR VALUE GAP (IPO CONTEXT)
+# ===============================
+def detect_fvg(df):
+    fvg_zones = []
+
+    for i in range(2, len(df)):
+        prev = df.iloc[i-2]
+        curr = df.iloc[i]
+
+        # Bullish FVG
+        if curr["Low"] > prev["High"]:
+            fvg_zones.append(
+                (prev["High"], curr["Low"], "Bullish")
+            )
+
+        # Bearish FVG
+        if curr["High"] < prev["Low"]:
+            fvg_zones.append(
+                (curr["High"], prev["Low"], "Bearish")
+            )
+
+    return fvg_zones
+
+# ===============================
 # FRAKSI HARGA BEI
 # ===============================
 def price_tick(price: float) -> int:
@@ -234,6 +258,24 @@ async def chart(ctx, ticker: str):
             return
 
         # =========================
+        # FULL DATA (IPO)
+        # =========================
+        df_full = yf.download(symbol, period="max", interval="1d")
+        
+        if isinstance(df_full.columns, pd.MultiIndex):
+            df_full.columns = df_full.columns.get_level_values(0)
+        
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            df_full[col] = pd.to_numeric(df_full[col], errors="coerce")
+        
+        df_full = df_full.dropna()
+
+        if df_full.empty:
+            await ctx.send("Data historis penuh tidak tersedia.")
+            return
+            
+
+        # =========================
         # RSI
         # =========================
         delta = df["Close"].diff()
@@ -264,6 +306,30 @@ async def chart(ctx, ticker: str):
             close_series = close_series.iloc[:, 0]
         
         last_price = price_tick(close_series.iloc[-1])
+
+        # =========================
+        # ALL TIME HIGH / LOW
+        # =========================
+        all_time_high = price_tick(df_full["High"].max())
+        all_time_low = price_tick(df_full["Low"].min())
+        
+        is_ath = last_price >= all_time_high * 0.995
+        is_atl = last_price <= all_time_low * 1.005
+
+        # =========================
+        # FAIR VALUE GAP (IPO)
+        # =========================
+        fvg_zones = detect_fvg(df_full)
+        
+        valid_fvg = [
+            z for z in fvg_zones
+            if z[0] <= last_price <= z[1]
+        ]
+        
+        if valid_fvg and not is_ath and not is_atl:
+            fvg_text = f"{price_tick(valid_fvg[0][0])} - {price_tick(valid_fvg[0][1])}"
+        else:
+            fvg_text = "N/A"
 
         # =========================
         # FUNDAMENTAL DATA
@@ -353,8 +419,8 @@ async def chart(ctx, ticker: str):
         
         
         # HITUNG ZONE
-        res_zones, sup_zones = calculate_sr_zones(df, last_price)
-        supply_zones, demand_zones = calculate_supply_demand(df, last_price)
+        res_zones, sup_zones = calculate_sr_zones(df_full, last_price)
+        supply_zones, demand_zones = calculate_supply_demand(df_full, last_price)
         
         merged_supply = merge_zones(supply_zones)
         merged_demand = merge_zones(demand_zones)
@@ -372,7 +438,15 @@ async def chart(ctx, ticker: str):
         
         support1 = format_zone(sup_zones[0]) if len(sup_zones) > 0 else "N/A"
         support2 = format_zone(sup_zones[1]) if len(sup_zones) > 1 else "N/A"
+
+        # =========================
+        # ATH / ATL FILTER (SR)
+        # =========================
+        if is_ath:
+            resistance1 = resistance2 = "N/A"
         
+        if is_atl:
+            support1 = support2 = "N/A"
         
         def format_simple(zone):
             if not zone:
@@ -384,6 +458,17 @@ async def chart(ctx, ticker: str):
         
         demand1 = format_simple(demand_zones[0]) if len(demand_zones) > 0 else "N/A"
         demand2 = format_simple(demand_zones[1]) if len(demand_zones) > 1 else "N/A"
+
+        # =========================
+        # ATH / ATL FILTER (SUPPLY DEMAND)
+        # =========================
+        if is_ath:
+            supply1 = supply2 = "N/A"
+        
+        if is_atl:
+            demand1 = demand2 = "N/A"
+
+
 
         # =========================
         # BANDARMOLOGY ENGINE
@@ -476,21 +561,33 @@ async def chart(ctx, ticker: str):
         fM_buy, fM_sell, fM_net, fM_avg, fM_status = foreign_1m
 
         # =========================
+        # MARKET CONTEXT
+        # =========================
+        market_context = (
+            "🚀 All Time High"
+            if is_ath else
+            "🧊 All Time Low"
+            if is_atl else
+            "📈 Range / Structure"
+        )
+
+        # =========================
         # TRADE PLAN
         # =========================
 
-        best_demand = merged_demand[0] if merged_demand else None
-                
-        if best_demand:
+        if is_ath or is_atl or not merged_demand:
+            entry_low = entry_high = "N/A"
+            target1 = target2 = "N/A"
+            invalidation = "N/A"
+        else:
+            best_demand = merged_demand[0]
+        
             entry_low = price_tick(best_demand[0])
             entry_high = price_tick(best_demand[1])
-        else:
-            entry_low = price_tick(last_price * 0.9)
-            entry_high = entry_low
         
-        target1 = price_tick(entry_high * 1.05)
-        target2 = price_tick(entry_high * 2)
-        invalidation = price_tick(entry_low * 0.98)
+            target1 = price_tick(entry_high * 1.05)
+            target2 = price_tick(entry_high * 2)
+            invalidation = price_tick(entry_low * 0.98)
         
         # menentukan bias
         if b3_net > 0 and b1_net > 0:
@@ -607,6 +704,8 @@ async def chart(ctx, ticker: str):
         
             f"📦 Supply : {supply1} | {supply2}\n"
             f"📥 Demand : {demand1} | {demand2}\n\n"
+            
+            f"Market Context : {market_context}\n\n"
         
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
