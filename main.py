@@ -72,6 +72,25 @@ def merge_zones(zones, tolerance=0.02):
     return merged
 
 # ===============================
+# FRAKSI HARGA BEI
+# ===============================
+def price_tick(price: float) -> int:
+    price = int(round(price))
+
+    if price < 200:
+        tick = 1
+    elif price < 500:
+        tick = 2
+    elif price < 2000:
+        tick = 5
+    elif price < 5000:
+        tick = 10
+    else:
+        tick = 25
+
+    return int(round(price / tick) * tick)
+
+# ===============================
 # LIQUIDITY SWEEP
 # ===============================
 def detect_liquidity_sweep(df):
@@ -244,7 +263,7 @@ async def chart(ctx, ticker: str):
         if isinstance(close_series, pd.DataFrame):
             close_series = close_series.iloc[:, 0]
         
-        last_price = float(close_series.iloc[-1])
+        last_price = price_tick(close_series.iloc[-1])
 
         # =========================
         # FUNDAMENTAL DATA
@@ -345,7 +364,7 @@ async def chart(ctx, ticker: str):
         # =============================
         def format_zone(zone):
             if zone:
-                return f"{int(zone[0])} - {int(zone[1])} (x{zone[2]})"
+                return f"{price_tick(zone[0])} - {price_tick(zone[1])} (x{zone[2]})"
             return "N/A"
         
         resistance1 = format_zone(res_zones[0]) if len(res_zones) > 0 else "N/A"
@@ -358,7 +377,7 @@ async def chart(ctx, ticker: str):
         def format_simple(zone):
             if not zone:
                 return "N/A"
-            return f"{int(zone[0])} - {int(zone[1])}"
+            return f"{price_tick(zone[0])} - {price_tick(zone[1])}"
         
         supply1 = format_simple(supply_zones[0]) if len(supply_zones) > 0 else "N/A"
         supply2 = format_simple(supply_zones[1]) if len(supply_zones) > 1 else "N/A"
@@ -461,17 +480,17 @@ async def chart(ctx, ticker: str):
         # =========================
 
         best_demand = merged_demand[0] if merged_demand else None
-        
+                
         if best_demand:
-            entry_low = int(best_demand[0])
-            entry_high = int(best_demand[1])
+            entry_low = price_tick(best_demand[0])
+            entry_high = price_tick(best_demand[1])
         else:
-            entry_low = int(last_price * 0.9)
+            entry_low = price_tick(last_price * 0.9)
             entry_high = entry_low
         
-        target1 = int(entry_high * 1.05)
-        target2 = int(entry_high * 2)
-        invalidation = int(entry_low * 0.98)
+        target1 = price_tick(entry_high * 1.05)
+        target2 = price_tick(entry_high * 2)
+        invalidation = price_tick(entry_low * 0.98)
         
         # menentukan bias
         if b3_net > 0 and b1_net > 0:
@@ -578,7 +597,7 @@ async def chart(ctx, ticker: str):
         await ctx.send(file=discord.File(file_path))
         
         caption += (
-            f"💰 Last Price : {int(last_price):,}\n\n"
+            f"💰 Last Price : {price_tick(last_price):,}\n\n"
         
             f"🟢 R1 : {resistance1}\n"
             f"🟢 R2 : {resistance2}\n\n"
