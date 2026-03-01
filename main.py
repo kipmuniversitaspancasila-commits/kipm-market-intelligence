@@ -903,17 +903,17 @@ async def chart(ctx, ticker: str):
         
             "══════════════════\n"
             "🎯 TRADE PLAN\n\n"
-            f"💰 Last Price : {price_tick(last_price):,}\n\n"
-            f"\nWeekly Bias : {weekly_bias}\n"
+            f"💰 Last Price : {price_tick(last_price):,}\n"
             f"📌 Entry : {entry_low} - {entry_high}\n"
             f"🎯 Target 1 : {target1}\n"
             f"🎯 Target 2 : {target2}\n"
-            f"🛑 Invalidation : {invalidation}\n"
+            f"🛑 Invalidation : {invalidation}\n\n"
+            
+            f"\nWeekly Bias : {weekly_bias}\n"
             f"📐 Swing Quality : {swing_quality}\n"
             f"📊 Status : {swing_status}\n"
             f"🧠 Insight : {quality_note}\n"
             f"📝 Note : {plan_note}\n"
-        
             "#DYOR | #DisclaimerOn\n"
             "by @marketnmocha\n"
             "══════════════════\n"
