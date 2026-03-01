@@ -799,8 +799,40 @@ async def chart(ctx, ticker: str):
             target_1 = None
             invalidation = None
             plan_type = "No Trade — Structure Weak"
+            
+        # =========================
+        # FALSE BREAKOUT DETECTOR
+        # =========================
         
-        # Guard condition
+        false_breakout_signal = "None"
+        
+        last_candle = df.iloc[-1]
+        prev_candle = df.iloc[-2]
+        
+        volume_spike = detect_volume_spike(df)
+        
+        def parse_zone_price(zone):
+            if zone == "N/A":
+                return None
+            return int(zone.split(" - ")[0].replace(",", ""))
+        
+        res_level = parse_zone_price(resistance1)
+        sup_level = parse_zone_price(support1)
+        
+        # Bull Trap
+        if res_level and last_candle["High"] > res_level:
+            if last_candle["Close"] < res_level and volume_spike:
+                false_breakout_signal = "Bull Trap"
+        
+        # Bear Trap
+        if sup_level and last_candle["Low"] < sup_level:
+            if last_candle["Close"] > sup_level and volume_spike:
+                false_breakout_signal = "Bear Trap"
+        
+        
+        # =========================
+        # GUARD CONDITION
+        # =========================
         if not merged_demand or is_ath or is_atl:
             plan_note = "No valid structure for trade"
         
