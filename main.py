@@ -1010,7 +1010,7 @@ async def chart(ctx, ticker: str):
         # =========================
         
         main_axes[0].text(
-            df.index[-1],
+            main_axes[0].get_xlim()[1]
             last_price,
             f"  {last_price}",
             color="gray",
