@@ -237,6 +237,32 @@ def volume_dominance(df, lookback=5):
     else:
         return "Balanced"
 
+# =========================
+# DEMAND ZONE UPGRADE (ABSORPTION CONFLUENCE)
+# =========================
+
+demand_score = 0
+demand_quality = "N/A"
+
+if merged_demand:
+    demand_score = 1
+    demand_quality = "Base Demand"
+
+    if absorption_signal == "Bullish Absorption":
+        demand_score += 2
+        demand_quality = "Strong Demand (Absorption)"
+
+    if volume_control == "Buyer Dominant":
+        demand_score += 1
+
+    demand_mid = (merged_demand[0][0] + merged_demand[0][1]) / 2
+    price_distance = abs(last_price - demand_mid) / last_price
+
+    if price_distance < 0.05:
+        demand_score += 1
+else:
+    demand_quality = "No Valid Demand"
+
 # ===============================
 # ZONE SCORING
 # ===============================
@@ -758,15 +784,28 @@ async def chart(ctx, ticker: str):
         # =========================
         # TRADE PLAN (STRUCTURE BASED)
         # =========================
+        if demand_score >= 3:
+            entry = merged_demand[0]
+            target_1 = recent_high
+            invalidation = merged_demand[0][0] * 0.97
+            plan_type = "Aggressive Institutional Setup"
         
-        entry_low = entry_high = "N/A"
-        target1 = target2 = "N/A"
-        invalidation = "N/A"
-        plan_note = ""
+        elif demand_score == 2:
+            entry = merged_demand[0]
+            target_1 = recent_high
+            invalidation = merged_demand[0][0] * 0.96
+            plan_type = "Moderate Setup"
+        
+        else:
+            entry = None
+            target_1 = None
+            invalidation = None
+            plan_type = "No Trade — Structure Weak"
         
         # Guard condition
         if not merged_demand or is_ath or is_atl:
             plan_note = "No valid structure for trade"
+        
         else:
             best_demand = merged_demand[0]
             entry_low = price_tick(best_demand[0])
@@ -775,28 +814,28 @@ async def chart(ctx, ticker: str):
         
             # === TARGET LOGIC ===
         
-            # Priority 1: Supply
             if merged_supply:
                 target1 = price_tick(merged_supply[0][0])
-            # Priority 2: Resistance
             elif resistance1 != "N/A":
                 target1 = int(resistance1.split(" - ")[0].replace(",", ""))
             else:
                 target1 = "N/A"
         
-            # Target 2 hanya kalau Weekly Bullish
             if weekly_bias == "Bullish Macro" and resistance2 != "N/A":
                 target2 = int(resistance2.split(" - ")[0].replace(",", ""))
             else:
                 target2 = "N/A"
         
-            # Note berdasarkan Weekly Bias
-            if weekly_bias == "Macro Range":
-                plan_note = "Range market: focus reaction, not continuation"
-            elif weekly_bias == "Bullish Macro":
-                plan_note = "Bullish macro: continuation possible"
-            elif weekly_bias == "Bearish Macro":
-                plan_note = "Bearish macro: aggressive buy not recommended"
+            # =========================
+            # DEMAND SCORE INTEGRATION
+            # =========================
+        
+            if demand_score < 2:
+                plan_note = "Weak demand — low conviction setup"
+            elif demand_score >= 4:
+                plan_note = "Strong institutional demand with absorption"
+            else:
+                plan_note = "Moderate demand structure"
         
         # =========================
         # SWING QUALITY VALIDATOR
@@ -946,6 +985,7 @@ async def chart(ctx, ticker: str):
             f"🛑 Invalidation : {invalidation}\n"
             "══════════════════\n"
             f"\nWeekly Bias : {weekly_bias}\n"
+            f"\nStructure Quality : {plan_note}"
             f"📐 Swing Quality : {swing_quality}\n"
             f"📊 Status : {swing_status}\n"
             f"🧠 Insight : {quality_note}\n"
