@@ -258,8 +258,6 @@ async def chart(ctx, ticker: str):
             symbol = ticker + ".JK"
         else:
             symbol = ticker
-
-        await ctx.send(f"📥 {symbol}")
         
         # =========================
         # MULTI TIMEFRAME DATA
@@ -746,16 +744,41 @@ async def chart(ctx, ticker: str):
             elif weekly_bias == "Bearish Macro":
                 plan_note = "Bearish macro: aggressive buy not recommended"
         
-        # menentukan bias
-        if b3_net > 0 and b1_net > 0:
-            bias = "🟢 Bullish Pressure"
-            probability = 84
-        elif b3_net < 0:
-            bias = "🔴 Distribution"
-            probability = 40
+        # =========================
+        # SWING QUALITY VALIDATOR
+        # =========================
+        
+        swing_quality = "N/A"
+        swing_status = "❌ NO TRADE"
+        quality_note = ""
+        
+        if entry_low != "N/A" and target1 != "N/A" and invalidation != "N/A":
+        
+            risk = abs(entry_low - invalidation)
+            reward = abs(target1 - entry_high)
+        
+            if risk <= 0 or reward <= 0:
+                swing_quality = "Low"
+                quality_note = "Invalid structure measurement"
+            else:
+                efficiency = reward / risk
+        
+                if efficiency >= 2:
+                    swing_quality = "High"
+                    swing_status = "✅ VALID SETUP"
+                    quality_note = "Clean swing: open liquidity & space to target"
+        
+                elif efficiency >= 1.3:
+                    swing_quality = "Medium"
+                    swing_status = "⚠️ CONDITIONAL"
+                    quality_note = "Acceptable swing but watch supply reaction"
+        
+                else:
+                    swing_quality = "Low"
+                    quality_note = "Target too close / risk too wide"
+        
         else:
-            bias = "⚖️ Neutral"
-            probability = 55
+            quality_note = "No valid swing structure"
             
         # =========================
         # CHART LAYOUT
@@ -895,7 +918,10 @@ async def chart(ctx, ticker: str):
             f"📌 Entry : {entry_low} - {entry_high}\n"
             f"🎯 Target 1 : {target1}\n"
             f"🎯 Target 2 : {target2}\n"
-            f"🛑 Invalidation : {invalidation}\n\n"
+            f"🛑 Invalidation : {invalidation}\n"
+            f"📐 Swing Quality : {swing_quality}\n"
+            f"📊 Status : {swing_status}\n"
+            f"🧠 Insight : {quality_note}\n"
             f"📝 Note : {plan_note}\n"
         
             "#DYOR | #DisclaimerOn\n"
