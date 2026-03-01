@@ -866,6 +866,9 @@ async def chart(ctx, ticker: str):
                 plan_note = "Strong institutional demand with absorption"
             else:
                 plan_note = "Moderate demand structure"
+
+            if false_breakout_signal != "None":
+                plan_note += f" | ⚠️ {false_breakout_signal}"
         
         # =========================
         # SWING QUALITY VALIDATOR
@@ -1016,6 +1019,7 @@ async def chart(ctx, ticker: str):
             f"📥 Demand Quality : {demand_quality} (Score {demand_score})\n"
             "══════════════════\n"
             f"Weekly Bias : {weekly_bias}\n"
+            f"🪤 Liquidity Trap : {false_breakout_signal}\n"
             f"Structure Quality : {plan_note}\n"
             f"📐 Swing Quality : {swing_quality}\n"
             f"📊 Status : {swing_status}\n"
