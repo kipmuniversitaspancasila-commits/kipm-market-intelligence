@@ -181,6 +181,63 @@ def detect_impulse(df):
     return (move / base) > 0.03
 
 # ===============================
+# ABSORPTION & VOLUME DOMINANCE
+# ===============================
+
+VOL_SPIKE_MULT = 1.5
+WICK_RATIO = 0.6
+
+def detect_absorption(df):
+    avg_vol = df["Volume"].rolling(20).mean()
+    last = df.iloc[-1]
+
+    rng = last["High"] - last["Low"]
+    if rng == 0:
+        return "None"
+
+    upper_wick = last["High"] - max(last["Open"], last["Close"])
+    lower_wick = min(last["Open"], last["Close"]) - last["Low"]
+
+    vol_spike = last["Volume"] > avg_vol.iloc[-1] * VOL_SPIKE_MULT
+
+    if not vol_spike:
+        return "None"
+
+    if lower_wick / rng > WICK_RATIO:
+        return "Bullish Absorption"
+
+    if upper_wick / rng > WICK_RATIO:
+        return "Bearish Absorption"
+
+    return "None"
+
+
+def volume_dominance(df, lookback=5):
+    recent = df.tail(lookback)
+
+    bull_vol = 0
+    bear_vol = 0
+
+    for _, row in recent.iterrows():
+        if row["Close"] > row["Open"]:
+            bull_vol += row["Volume"]
+        else:
+            bear_vol += row["Volume"]
+
+    total = bull_vol + bear_vol
+    if total == 0:
+        return "Neutral"
+
+    ratio = bull_vol / total
+
+    if ratio > 0.6:
+        return "Buyer Dominant"
+    elif ratio < 0.4:
+        return "Seller Dominant"
+    else:
+        return "Balanced"
+
+# ===============================
 # ZONE SCORING
 # ===============================
 def score_zone(zone):
@@ -443,6 +500,22 @@ async def chart(ctx, ticker: str):
             close_series = close_series.iloc[:, 0]
         
         last_price = price_tick(close_series.iloc[-1])
+
+        # =========================
+        # ABSORPTION CONTEXT
+        # =========================
+        
+        absorption_signal = detect_absorption(df)
+        volume_control = volume_dominance(df)
+        
+        if absorption_signal == "Bullish Absorption":
+            absorption_text = "🧲 Absorption : Bullish (Supply absorbed)"
+        elif absorption_signal == "Bearish Absorption":
+            absorption_text = "🧲 Absorption : Bearish (Distribution)"
+        else:
+            absorption_text = "🧲 Absorption : None"
+        
+        volume_text = f"📊 Volume Control : {volume_control}"
 
         # =========================
         # ALL TIME HIGH / LOW
@@ -855,6 +928,8 @@ async def chart(ctx, ticker: str):
         caption += (
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
+            f"{absorption_text}\n"
+            f"{volume_text}\n"
             "══════════════════\n"
             "📚 FUNDAMENTAL\n"
             f"PBV : {pbv_text}\n"
