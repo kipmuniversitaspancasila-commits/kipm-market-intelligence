@@ -1032,39 +1032,63 @@ async def chart(ctx, ticker: str):
         
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
+
+
+        # =========================
+        # STRUCTURED INSIGHT ENGINE
+        # =========================
         
+        # ---- PRIORITY 1 : VOLUME ----
+        if volume_control == "Seller Dominant":
+            volume_view = "Distribution Pressure"
+        elif volume_control == "Buyer Dominant":
+            volume_view = "Accumulation Pressure"
+        else:
+            volume_view = "Balanced Volume"
+        
+        # ---- PRIORITY 2 : STRUCTURE ----
+        if demand_score >= 4:
+            structure_view = "Strong Demand Structure"
+        elif demand_score >= 2:
+            structure_view = "Moderate Demand Structure"
+        else:
+            structure_view = "Weak Demand Structure"
+        
+        macro_view = weekly_bias
+        
+        # ---- PRIORITY 3 : RISK QUALITY ----
+        if swing_quality == "High":
+            risk_view = "High RR"
+        elif swing_quality == "Medium":
+            risk_view = "Moderate RR"
+        else:
+            risk_view = "Low RR"
+        
+        # ---- FINAL INSIGHT (Ordered) ----
+        insight_text = f"{volume_view} | {structure_view} | {macro_view} | {risk_view}"
+
         caption += (
-            f"📈 RSI : {rsi_now:.2f}\n"
-            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
-            f"{absorption_text}\n"
-            f"{volume_text}\n"
-            f"⚖️ Effort vs Result : {evr_signal}\n"
             "══════════════════\n"
             "📚 FUNDAMENTAL\n"
             f"PBV : {pbv_text}\n"
-            f"Equity / Share : {book_value_text}\n"
-            "══════════════════\n"
+            f"Equity / Share : {book_value_text}\n\n"
             f"{bandar_text}\n\n"
             f"{foreign_text}\n"
             "══════════════════\n"
-            "🎯 TRADE PLAN\n"
-            f"💰 Last Price : {price_tick(last_price):,}\n"
-            f"📌 Entry : {entry_low} - {entry_high}\n"
-            f"🎯 Target 1 : {target1}\n"
-            f"🎯 Target 2 : {target2}\n"
-            f"🛑 Invalidation : {invalidation}\n"
-            f"📥 Demand Quality : {demand_quality} (Score {demand_score})\n"
+            f"📈 RSI : {rsi_now:.2f}\n"
+            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
+            f"📊 Volume Control : {volume_control}\n"
             "══════════════════\n"
-            f"Weekly Bias : {weekly_bias}\n"
-            f"🪤 Liquidity Trap : {false_breakout_signal}\n"
-            f"Structure Quality : {plan_note}\n"
-            f"📐 Swing Quality : {swing_quality}\n"
-            f"📊 Status : {swing_status}\n"
-            f"🧠 Insight : {quality_note}\n"
-            f"📝 Note : {plan_note}\n"
+            "🎯 TRADE PLAN\n"
+            f"Last Price : {price_tick(last_price):,}\n"
+            f"Entry : {entry_low} - {entry_high}\n"
+            f"Target 1 : {target1}\n"
+            f"Target 2 : {target2}\n"
+            f"Invalidation : {invalidation}\n"
+            "══════════════════\n"
+            f"🧠 Insight : {insight_text}\n"
             "#DYOR | #DisclaimerOn\n"
             "by @marketnmocha\n"
-            "══════════════════\n"
         )
 
         if file_path:
