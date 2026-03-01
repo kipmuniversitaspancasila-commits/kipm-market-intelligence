@@ -739,10 +739,12 @@ async def chart(ctx, ticker: str):
         # =========================
         
         def format_value(v):
-            if v >= 1_000_000_000_000:
+            if abs(v) >= 1_000_000_000_000:
                 return f"{v/1_000_000_000_000:.2f} T"
-            elif v >= 1_000_000_000:
+            elif abs(v) >= 1_000_000_000:
                 return f"{v/1_000_000_000:.2f} B"
+            elif abs(v) >= 1_000_000:
+                return f"{v/1_000_000:.2f} M"
             else:
                 return f"{v:,.0f}"
         
@@ -789,8 +791,8 @@ async def chart(ctx, ticker: str):
             return "Akumulasi" if net > 0 else "Distribusi"
         
         def format_net(v):
-            sign = "+" if v > 0 else ""
-            return f"{sign}{format_value(v)}"
+            sign = "+" if v > 0 else "-"
+            return f"{sign}{format_value(abs(v))}"
         
         bandar_text = (
             "📊 BANDARMOLOGY\n"
@@ -1172,27 +1174,50 @@ async def chart(ctx, ticker: str):
         insight_text = f"{volume_view} | {structure_view} | {macro_view} | {risk_view}"
 
         caption += (
-            "══════════════════\n"
-            "📚 FUNDAMENTAL\n"
-            f"PBV : {pbv_text}\n"
-            f"Equity / Share : {book_value_text}\n\n"
-            f"{bandar_text}\n\n"
-            f"{foreign_text}\n"
-            "══════════════════\n"
-            f"📈 RSI : {rsi_now:.2f}\n"
-            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
-            f"📊 Volume Control : {volume_control}\n"
-            "══════════════════\n"
-            "🎯 TRADE PLAN\n"
-            f"Last Price : {price_tick(last_price):,}\n"
-            f"Entry : {entry_low} - {entry_high}\n"
-            f"Target 1 : {target1}\n"
-            f"Target 2 : {target2}\n"
-            f"Invalidation : {invalidation}\n"
-            "══════════════════\n"
-            f"🧠 Insight : {insight_text}\n"
-            "#DYOR | #DisclaimerOn\n"
-            "by @marketnmocha\n"
+        "╔══════════════════════════╗\n"
+        "║        MARKET REPORT        ║\n"
+        "╚══════════════════════════╝\n"
+        
+        "Volume ━━━━━━━━━━━━━━━━━━━\n"
+        "📚 FUNDAMENTAL SNAPSHOT\n"
+        f"PBV        : {pbv_text}\n"
+        f"Equity     : {book_value_text}\n"
+        
+        "\n━━━━━━━━━━━━━━━━━━\n"
+        "🏦 SMART MONEY FLOW\n"
+        
+        "\n📊 Bandar\n"
+        f"3D  → {format_net(b3_net)} @{price_tick(b3_avg):,}\n"
+        f"1W  → {format_net(b1_net)} @{price_tick(b1_avg):,}\n"
+        f"1M  → {format_net(bM_net)} @{price_tick(bM_avg):,}\n"
+        
+        "\n🌍 Foreign\n"
+        f"3D  → {format_net(f3_net)} @{price_tick(f3_avg):,}\n"
+        f"1W  → {format_net(f1_net)} @{price_tick(f1_avg):,}\n"
+        f"1M  → {format_net(fM_net)} @{price_tick(fM_avg):,}\n"
+        
+        "\n━━━━━━━━━━━━━━━━━━\n"
+        "⚙️ MARKET MOMENTUM\n"
+        f"RSI        : {rsi_now:.2f}\n"
+        f"Stochastic : {stoch_now:.2f}\n"
+        f"Volume     : {volume_view}\n"
+        
+        "\n━━━━━━━━━━━━━━━━━━\n"
+        "🎯 TRADE EXECUTION PLAN\n"
+        f"Last Price : {price_tick(last_price):,}\n"
+        f"Entry Zone : {entry_low:,} - {entry_high:,}\n"
+        f"Target 1   : {target1}\n"
+        f"Invalid    : {invalidation}\n"
+        
+        "\n━━━━━━━━━━━━━━━━━━\n"
+        "🧠 MARKET INSIGHT\n"
+        f"{volume_view}\n"
+        f"{structure_view}\n"
+        f"{macro_view}\n"
+        f"{risk_view}\n"
+        
+        "\n#DYOR | #DisclaimerOn\n"
+        "@marketnmocha"
         )
 
         if file_path:
