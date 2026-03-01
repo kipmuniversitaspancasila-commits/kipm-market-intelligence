@@ -244,9 +244,9 @@ def volume_dominance(df, lookback=5):
 demand_score = 0
 demand_quality = "N/A"
 
-if merged_demand:
-    demand_score = 1
-    demand_quality = "Base Demand"
+    if merged_demand:
+        demand_score = 1
+        demand_quality = "Base Demand"
 
     if absorption_signal == "Bullish Absorption":
         demand_score += 2
