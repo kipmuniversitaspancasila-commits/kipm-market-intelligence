@@ -270,6 +270,53 @@ async def chart(ctx, ticker: str):
         df_1h = yf.download(symbol, period="6mo", interval="1h").dropna()
 
         # =========================
+        # WEEKLY STRUCTURE ENGINE
+        # =========================
+        
+        def detect_swings(df, lookback=2):
+            swing_highs = []
+            swing_lows = []
+        
+            for i in range(lookback, len(df) - lookback):
+                high = df["High"].iloc[i]
+                low = df["Low"].iloc[i]
+        
+                if high == max(df["High"].iloc[i-lookback:i+lookback+1]):
+                    swing_highs.append((i, high))
+        
+                if low == min(df["Low"].iloc[i-lookback:i+lookback+1]):
+                    swing_lows.append((i, low))
+        
+            return swing_highs, swing_lows
+        
+        
+        weekly_bias = "Undefined"
+        
+        if len(df_weekly) > 20:
+            swing_highs_w, swing_lows_w = detect_swings(df_weekly, lookback=2)
+        
+            if len(swing_highs_w) >= 2 and len(swing_lows_w) >= 2:
+                last_high = swing_highs_w[-1][1]
+                prev_high = swing_highs_w[-2][1]
+        
+                last_low = swing_lows_w[-1][1]
+                prev_low = swing_lows_w[-2][1]
+        
+                if last_high > prev_high and last_low > prev_low:
+                    weekly_bias = "Bullish Macro"
+        
+                elif last_high < prev_high and last_low < prev_low:
+                    weekly_bias = "Bearish Macro"
+        
+                else:
+                    weekly_bias = "Macro Range"
+            else:
+                weekly_bias = "Insufficient Structure"
+        else:
+            weekly_bias = "Not Enough Weekly Data"
+        
+
+        # =========================
         # DOWNLOAD DATA
         # =========================
         df = yf.download(symbol, period="6mo", interval="1d")
@@ -813,6 +860,7 @@ async def chart(ctx, ticker: str):
             f"// Net : {format_value(fM_net)} ({fM_status}) Avg : {int(fM_avg)}\n"
         
             "══════════════════\n"
+            f"\nWeekly Bias : {weekly_bias}"
             "🎯 TRADE PLAN\n\n"
         
             f"Bias : {bias}\n"
