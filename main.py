@@ -815,27 +815,6 @@ async def chart(ctx, ticker: str):
             if is_atl else
             "📈 Range / Structure"
         )
-
-        # =========================
-        # TRADE PLAN (STRUCTURE BASED)
-        # =========================
-        if demand_score >= 3:
-            entry = merged_demand[0]
-            target_1 = recent_high
-            invalidation = merged_demand[0][0] * 0.97
-            plan_type = "Aggressive Institutional Setup"
-        
-        elif demand_score == 2:
-            entry = merged_demand[0]
-            target_1 = recent_high
-            invalidation = merged_demand[0][0] * 0.96
-            plan_type = "Moderate Setup"
-        
-        else:
-            entry = None
-            target_1 = None
-            invalidation = None
-            plan_type = "No Trade — Structure Weak"
             
         # =========================
         # FALSE BREAKOUT DETECTOR
@@ -1008,14 +987,24 @@ async def chart(ctx, ticker: str):
         # =========================
         # LAST PRICE LINE
         # =========================
+        xmax = main_axes[0].get_xlim()[1]
         
         main_axes[0].text(
-            main_axes[0].get_xlim()[1]
+            xmax,
             last_price,
-            f"  {last_price}",
+            f" {last_price}",
             color="gray",
             fontsize=8,
-            verticalalignment="bottom"
+            verticalalignment="bottom",
+            horizontalalignment="right"
+        )
+        
+        main_axes[0].axhline(
+            y=last_price,
+            color="gray",
+            linestyle="--",
+            linewidth=0.8,
+            alpha=0.7
         )
         # REMOVE GRID
         for ax in main_axes:
@@ -1040,6 +1029,16 @@ async def chart(ctx, ticker: str):
         # =========================
         # REFERENCE LINES (DI SINI!)
         # =========================
+        # =========================
+        # EMA ADDPLOTS
+        # =========================
+        
+        ema21_plot = mpf.make_addplot(df["EMA21"], color="gold", width=1)
+        ema50_plot = mpf.make_addplot(df["EMA50"], color="green", width=1)
+        ema200_plot = mpf.make_addplot(df["EMA200"], color="red", width=1)
+        
+        apds.extend([ema21_plot, ema50_plot, ema200_plot])
+
         # RSI
         main_axes[2].axhline(70, color="gray", linestyle="--", linewidth=1)
         main_axes[2].axhline(30, color="gray", linestyle="--", linewidth=1)
@@ -1051,15 +1050,7 @@ async def chart(ctx, ticker: str):
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
 
-        # =========================
-        # EMA ADDPLOTS
-        # =========================
-        
-        ema21_plot = mpf.make_addplot(df["EMA21"], color="gold", width=1)
-        ema50_plot = mpf.make_addplot(df["EMA50"], color="green", width=1)
-        ema200_plot = mpf.make_addplot(df["EMA200"], color="red", width=1)
-        
-        apds.extend([ema21_plot, ema50_plot, ema200_plot])
+
         # =========================
         # STRUCTURED INSIGHT ENGINE
         # =========================
