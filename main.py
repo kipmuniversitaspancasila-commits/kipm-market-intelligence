@@ -788,7 +788,7 @@ async def chart(ctx, ticker: str):
         # =========================
         
         def flow_state(net):
-            return "Akumulasi" if net > 0 else "Distribusi"
+            return "🟢 Akumulasi" if net > 0 else "🔴 Distribusi"
         
         def format_net(v):
             sign = "+" if v > 0 else "-"
@@ -1173,10 +1173,19 @@ async def chart(ctx, ticker: str):
         
         insight_text = f"{volume_view} | {structure_view} | {macro_view} | {risk_view}"
 
+   
+        header_width = 22  # bisa kamu ubah kalau mau lebih lebar
+        
+        title = f"{symbol} — IDX"
+        
+        top_border = "╔" + "═" * header_width + "╗"
+        mid_line = f"║{title.center(header_width)}║"
+        bot_border = "╚" + "═" * header_width + "╝"
+        
         caption += (
-        "╔═══════════════╗\n"
-        "║       MARKET REPORT       ║\n"
-        "╚═══════════════╝\n"
+            f"{top_border}\n"
+            f"{mid_line}\n"
+            f"{bot_border}\n"
         
         "📚 FUNDAMENTAL\n"
         f"PBV        : {pbv_text}\n"
@@ -1185,15 +1194,15 @@ async def chart(ctx, ticker: str):
         "━━━━━━━━━━━━━━━━━━\n"
         "🏦 SMART MONEY FLOW\n"
         
-        "\n📊 BDM accum-distri\n"
-        f"3D  → {format_net(b3_net)} @{price_tick(b3_avg):,}\n"
-        f"1W  → {format_net(b1_net)} @{price_tick(b1_avg):,}\n"
-        f"1M  → {format_net(bM_net)} @{price_tick(bM_avg):,}\n"
+        "\n📊 BDM Accum-Distri\n"
+        f"3D  → {format_net(b3_net)} @{price_tick(b3_avg):,} ({flow_state(b3_net)})\n"
+        f"1W  → {format_net(b1_net)} @{price_tick(b1_avg):,} ({flow_state(b1_net)})\n"
+        f"1M  → {format_net(bM_net)} @{price_tick(bM_avg):,} ({flow_state(bM_net)})\n"
         
         "\n🌍 Foreign\n"
-        f"3D  → {format_net(f3_net)} @{price_tick(f3_avg):,}\n"
-        f"1W  → {format_net(f1_net)} @{price_tick(f1_avg):,}\n"
-        f"1M  → {format_net(fM_net)} @{price_tick(fM_avg):,}\n"
+        f"3D  → {format_net(f3_net)} @{price_tick(f3_avg):,} ({flow_state(f3_net)})\n"
+        f"1W  → {format_net(f1_net)} @{price_tick(f1_avg):,} ({flow_state(f1_net)})\n"
+        f"1M  → {format_net(fM_net)} @{price_tick(fM_avg):,} ({flow_state(fM_net)})\n"
         
         "━━━━━━━━━━━━━━━━━━\n"
         "⚙️ MARKET MOMENTUM\n"
