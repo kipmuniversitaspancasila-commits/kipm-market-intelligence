@@ -356,8 +356,16 @@ async def chart(ctx, ticker: str):
         # =========================
         # FUNDAMENTAL DATA
         # =========================
-        pbv_raw = info.get("priceToBook", None)
-        equity_raw = info.get("bookValue", None)
+        try:
+            stock = yf.Ticker(symbol)
+            info = stock.info
+        
+            pbv_raw = info.get("priceToBook", None)
+            equity_raw = info.get("bookValue", None)
+        
+        except Exception:
+            pbv_raw = None
+            equity_raw = None
         
         pbv_text = sanitize_pbv(pbv_raw)
         book_value_text = sanitize_equity_per_share(equity_raw)
