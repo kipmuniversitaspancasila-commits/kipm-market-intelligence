@@ -1029,7 +1029,34 @@ async def chart(ctx, ticker: str):
             horizontalalignment="right"
         )
         
+        # =========================
+        # EMA RIGHT PRICE BOX (TARUH DI SINI)
+        # =========================
         
+        ema21_last = df["EMA21"].iloc[-1]
+        ema50_last = df["EMA50"].iloc[-1]
+        ema200_last = df["EMA200"].iloc[-1]
+        
+        def ema_box(y, text, color):
+            main_axes[0].text(
+                xmax,
+                y,
+                f" {price_tick(text)} ",
+                color="white",
+                fontsize=8,
+                verticalalignment="center",
+                horizontalalignment="right",
+                bbox=dict(
+                    facecolor=color,
+                    edgecolor="none",
+                    boxstyle="round,pad=0.2"
+                )
+            )
+        
+        ema_box(ema21_last, ema21_last, "gold")
+        ema_box(ema50_last, ema50_last, "green")
+        ema_box(ema200_last, ema200_last, "red")
+
         # =========================
         # COSMETIC
         # =========================
@@ -1061,6 +1088,22 @@ async def chart(ctx, ticker: str):
         import matplotlib.dates as mdates
         main_axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
         main_axes[3].tick_params(axis='x', rotation=0)
+
+        # =========================
+        # WATERMARK (TARUH DI SINI)
+        # =========================
+        
+        main_axes[0].text(
+            0.98,
+            0.95,
+            "@marketnmocha",
+            transform=main_axes[0].transAxes,
+            fontsize=10,
+            color="gray",
+            alpha=0.6,
+            horizontalalignment="right",
+            verticalalignment="top"
+        )
         
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
