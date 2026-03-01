@@ -590,7 +590,7 @@ async def chart(ctx, ticker: str):
             f"📥 Demand : {demand1} | {demand2}\n\n"
         
             f"📈 RSI : {rsi_now:.2f}\n"
-            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n\n"
+            f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
 
             "══════════════════\n"
             "📚 FUNDAMENTAL\n"
@@ -632,7 +632,7 @@ async def chart(ctx, ticker: str):
             f"🛑 Invalidation : {invalidation}\n\n"
         
             "#DYOR | #DisclaimerOn\n"
-            "by @marketnmocha"
+            "by @marketnmocha\n"
             "══════════════════\n"
         )
 
