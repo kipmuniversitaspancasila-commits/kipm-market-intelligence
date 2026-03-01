@@ -931,62 +931,92 @@ async def chart(ctx, ticker: str):
         # =========================
         # CHART LAYOUT
         # =========================
-
+        
         apds = []
         
-        # RSI panel 2
+        # =========================
+        # EMA (PRICE PANEL)
+        # =========================
+        ema21_plot = mpf.make_addplot(df["EMA21"], color="gold", width=1)
+        ema50_plot = mpf.make_addplot(df["EMA50"], color="green", width=1)
+        ema200_plot = mpf.make_addplot(df["EMA200"], color="red", width=1.2)
+        
+        apds.extend([ema21_plot, ema50_plot, ema200_plot])
+        
+        
+        # =========================
+        # RSI (PANEL 2)
+        # =========================
         rsi_plot = mpf.make_addplot(
             df["RSI"],
             panel=2,
             color="blue",
-            width=1.2
+            width=1
         )
         apds.append(rsi_plot)
         
-        # STOCH panel 3
+        
+        # =========================
+        # STOCHASTIC (PANEL 3)
+        # =========================
         k_plot = mpf.make_addplot(
             df["%K"],
             panel=3,
             color="green",
-            width=1.2
+            width=1
         )
         
         d_plot = mpf.make_addplot(
             df["%D"],
             panel=3,
             color="red",
-            width=1.2
+            width=1
         )
         
         apds.extend([k_plot, d_plot])
         
+        
+        # =========================
+        # PLOT CHART
+        # =========================
         file_path = f"{symbol}_chart.png"
         
         fig, axes = mpf.plot(
             df,
             type="candle",
             style="nightclouds",
-            volume=True,              
+            volume=True,
             addplot=apds,
             panel_ratios=(4,1,1,1),
             figsize=(14,8),
             returnfig=True
         )
         
+        
         # =========================
-        # axes yang dipakai cuma index genap
-        # karena mplfinance bikin twin axis
+        # AXES SETUP
         # =========================
         
-        main_axes = axes[::2]
+        main_axes = axes[::2]   # ambil axis utama saja
         
+        # index mapping:
         # 0 = price
         # 1 = volume
         # 2 = rsi
         # 3 = stoch
+        
+        
         # =========================
         # LAST PRICE LINE
         # =========================
+        main_axes[0].axhline(
+            y=last_price,
+            color="gray",
+            linestyle="--",
+            linewidth=0.8,
+            alpha=0.7
+        )
+        
         xmax = main_axes[0].get_xlim()[1]
         
         main_axes[0].text(
@@ -999,36 +1029,43 @@ async def chart(ctx, ticker: str):
             horizontalalignment="right"
         )
         
-        main_axes[0].axhline(
-            y=last_price,
-            color="gray",
-            linestyle="--",
-            linewidth=0.8,
-            alpha=0.7
-        )
-        # REMOVE GRID
+        
+        # =========================
+        # COSMETIC
+        # =========================
+        
+        # Remove grid
         for ax in main_axes:
             ax.grid(False)
         
-        # MOVE Y TO RIGHT
+        # Move Y-axis to right
         for ax in main_axes:
             ax.yaxis.set_label_position("right")
             ax.yaxis.tick_right()
         
-        # FIX LABEL
+        # Axis labels
         main_axes[0].set_ylabel("Price")
-        main_axes[1].set_ylabel("Vol")
+        main_axes[1].set_ylabel("Volume")
         main_axes[2].set_ylabel("RSI")
         main_axes[3].set_ylabel("Stoch")
         
-        # DATE FORMAT (horizontal)
+        # RSI reference lines
+        main_axes[2].axhline(70, linestyle="--", linewidth=1)
+        main_axes[2].axhline(30, linestyle="--", linewidth=1)
+        
+        # Stoch reference lines
+        main_axes[3].axhline(80, linestyle="--", linewidth=1)
+        main_axes[3].axhline(20, linestyle="--", linewidth=1)
+        
+        # Date format
         import matplotlib.dates as mdates
         main_axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
         main_axes[3].tick_params(axis='x', rotation=0)
+        
+        fig.savefig(file_path, bbox_inches="tight")
+        plt.close(fig)
 
-        # =========================
-        # REFERENCE LINES (DI SINI!)
-        # =========================
+
         # =========================
         # EMA ADDPLOTS
         # =========================
