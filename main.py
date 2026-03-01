@@ -801,9 +801,9 @@ async def chart(ctx, ticker: str):
         
         foreign_text = (
             "🌍 FOREIGN FLOW\n"
-            f"3D // {format_net(f3_net)}  @{int(f3_avg)} ({flow_state(f3_net)})\n"
-            f"1W // {format_net(f1_net)} @{int(f1_avg)} ({flow_state(f1_net)})\n"
-            f"1M // {format_net(fM_net)} @{int(fM_avg)} ({flow_state(fM_net)})"
+            f"3D // {format_net(f3_net)}  @{price_tick(f3_avg):,} ({flow_state(f3_net)})\n"
+            f"1W // {format_net(f1_net)} @{price_tick(f1_avg):,} ({flow_state(f1_net)})\n"
+            f"1M // {format_net(fM_net)} @{price_tick(fM_avg):,} ({flow_state(fM_net)})"
         )
         # =========================
         # MARKET CONTEXT
@@ -1137,31 +1137,38 @@ async def chart(ctx, ticker: str):
         
         # ---- PRIORITY 1 : VOLUME ----
         if volume_control == "Seller Dominant":
-            volume_view = "Distribution Pressure"
+            volume_view = "Tekanan Distribusi"
         elif volume_control == "Buyer Dominant":
-            volume_view = "Accumulation Pressure"
+            volume_view = "Tekanan Akumulasi"
         else:
-            volume_view = "Balanced Volume"
+            volume_view = "Volume Seimbang"
         
-        # ---- PRIORITY 2 : STRUCTURE ----
+        # ---- PRIORITY 2 : STRUKTUR ----
         if demand_score >= 4:
-            structure_view = "Strong Demand Structure"
+            structure_view = "Struktur Demand Kuat"
         elif demand_score >= 2:
-            structure_view = "Moderate Demand Structure"
+            structure_view = "Struktur Demand Moderat"
         else:
-            structure_view = "Weak Demand Structure"
+            structure_view = "Struktur Demand Lemah"
         
-        macro_view = weekly_bias
+        # ---- PRIORITY 3 : MAKRO ----
+        if weekly_bias == "Bullish Macro":
+            macro_view = "Makro Bullish"
+        elif weekly_bias == "Bearish Macro":
+            macro_view = "Makro Bearish"
+        elif weekly_bias == "Macro Range":
+            macro_view = "Makro Sideways"
+        else:
+            macro_view = "Makro Tidak Jelas"
         
-        # ---- PRIORITY 3 : RISK QUALITY ----
+        # ---- PRIORITY 4 : RISK REWARD ----
         if swing_quality == "High":
-            risk_view = "High RR"
+            risk_view = "Risk Reward Tinggi"
         elif swing_quality == "Medium":
-            risk_view = "Moderate RR"
+            risk_view = "Risk Reward Cukup"
         else:
-            risk_view = "Low RR"
+            risk_view = "Risk Reward Rendah"
         
-        # ---- FINAL INSIGHT (Ordered) ----
         insight_text = f"{volume_view} | {structure_view} | {macro_view} | {risk_view}"
 
         caption += (
