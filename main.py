@@ -823,14 +823,10 @@ async def chart(ctx, ticker: str):
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
         
-        
-        
         caption += (
             f"💰 Last Price : {price_tick(last_price):,}\n\n"
-        
             f"🟢 R1 : {resistance1}\n"
             f"🟢 R2 : {resistance2}\n\n"
-        
             f"🔴 S1 : {support1}\n"
             f"🔴 S2 : {support2}\n"
             "══════════════════\n"
@@ -840,13 +836,9 @@ async def chart(ctx, ticker: str):
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
             "══════════════════\n"
-            f"\nWeekly Bias : {weekly_bias}\n"
-
-            "══════════════════\n"
             "📚 FUNDAMENTAL\n"
             f"PBV : {pbv_text}\n"
             f"Equity / Share : {book_value_text}\n"
-        
             "══════════════════\n"
             "📊 BANDARMOLOGY\n"
         
@@ -871,11 +863,10 @@ async def chart(ctx, ticker: str):
             f"// Net : {format_value(fM_net)} ({fM_status}) Avg : {int(fM_avg)}\n"
         
             "══════════════════\n"
-            f"\nWeekly Bias : {weekly_bias}"
             "🎯 TRADE PLAN\n\n"
         
             f"Bias : {bias}\n"
-        
+            f"\nWeekly Bias : {weekly_bias}\n"
             f"📌 Entry : {entry_low} - {entry_high}\n"
             f"🎯 Target 1 : {target1}\n"
             f"🎯 Target 2 : {target2}\n"
