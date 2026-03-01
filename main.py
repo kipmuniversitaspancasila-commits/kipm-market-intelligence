@@ -704,22 +704,47 @@ async def chart(ctx, ticker: str):
         )
 
         # =========================
-        # TRADE PLAN
+        # TRADE PLAN (STRUCTURE BASED)
         # =========================
-
-        if is_ath or is_atl or not merged_demand:
-            entry_low = entry_high = "N/A"
-            target1 = target2 = "N/A"
-            invalidation = "N/A"
+        
+        entry_low = entry_high = "N/A"
+        target1 = target2 = "N/A"
+        invalidation = "N/A"
+        plan_note = ""
+        
+        # Guard condition
+        if not merged_demand or is_ath or is_atl:
+            plan_note = "No valid structure for trade"
         else:
             best_demand = merged_demand[0]
-        
             entry_low = price_tick(best_demand[0])
             entry_high = price_tick(best_demand[1])
-        
-            target1 = price_tick(entry_high * 1.05)
-            target2 = price_tick(entry_high * 2)
             invalidation = price_tick(entry_low * 0.98)
+        
+            # === TARGET LOGIC ===
+        
+            # Priority 1: Supply
+            if merged_supply:
+                target1 = price_tick(merged_supply[0][0])
+            # Priority 2: Resistance
+            elif resistance1 != "N/A":
+                target1 = int(resistance1.split(" - ")[0].replace(",", ""))
+            else:
+                target1 = "N/A"
+        
+            # Target 2 hanya kalau Weekly Bullish
+            if weekly_bias == "Bullish Macro" and resistance2 != "N/A":
+                target2 = int(resistance2.split(" - ")[0].replace(",", ""))
+            else:
+                target2 = "N/A"
+        
+            # Note berdasarkan Weekly Bias
+            if weekly_bias == "Macro Range":
+                plan_note = "Range market: focus reaction, not continuation"
+            elif weekly_bias == "Bullish Macro":
+                plan_note = "Bullish macro: continuation possible"
+            elif weekly_bias == "Bearish Macro":
+                plan_note = "Bearish macro: aggressive buy not recommended"
         
         # menentukan bias
         if b3_net > 0 and b1_net > 0:
@@ -871,6 +896,7 @@ async def chart(ctx, ticker: str):
             f"🎯 Target 1 : {target1}\n"
             f"🎯 Target 2 : {target2}\n"
             f"🛑 Invalidation : {invalidation}\n\n"
+            f"📝 Note : {plan_note}\n"
         
             "#DYOR | #DisclaimerOn\n"
             "by @marketnmocha\n"
