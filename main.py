@@ -265,9 +265,18 @@ async def chart(ctx, ticker: str):
         # MULTI TIMEFRAME DATA
         # =========================
         
-        df_weekly = yf.download(symbol, period="max", interval="1wk").dropna()
-        df_daily = yf.download(symbol, period="max", interval="1d").dropna()
-        df_1h = yf.download(symbol, period="6mo", interval="1h").dropna()
+        df_weekly = yf.download(symbol, period="max", interval="1wk")
+        df_daily = yf.download(symbol, period="max", interval="1d")
+        df_1h = yf.download(symbol, period="6mo", interval="1h")
+        
+        # Normalize columns (important)
+        for df in [df_weekly, df_daily, df_1h]:
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+        
+        df_weekly = df_weekly.dropna()
+        df_daily = df_daily.dropna()
+        df_1h = df_1h.dropna()
 
         # =========================
         # WEEKLY STRUCTURE ENGINE
@@ -292,7 +301,7 @@ async def chart(ctx, ticker: str):
         
         weekly_bias = "Undefined"
         
-        if len(df_weekly) > 20:
+        if not df_weekly.empty and df_weekly.shape[0] > 20:
             swing_highs_w, swing_lows_w = detect_swings(df_weekly, lookback=2)
         
             if len(swing_highs_w) >= 2 and len(swing_lows_w) >= 2:
