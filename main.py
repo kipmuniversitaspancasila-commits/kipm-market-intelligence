@@ -237,32 +237,6 @@ def volume_dominance(df, lookback=5):
     else:
         return "Balanced"
 
-# =========================
-# DEMAND ZONE UPGRADE (ABSORPTION CONFLUENCE)
-# =========================
-
-demand_score = 0
-demand_quality = "N/A"
-
-    if merged_demand:
-        demand_score = 1
-        demand_quality = "Base Demand"
-
-    if absorption_signal == "Bullish Absorption":
-        demand_score += 2
-        demand_quality = "Strong Demand (Absorption)"
-
-    if volume_control == "Buyer Dominant":
-        demand_score += 1
-
-    demand_mid = (merged_demand[0][0] + merged_demand[0][1]) / 2
-    price_distance = abs(last_price - demand_mid) / last_price
-
-    if price_distance < 0.05:
-        demand_score += 1
-else:
-    demand_quality = "No Valid Demand"
-
 # ===============================
 # ZONE SCORING
 # ===============================
@@ -653,6 +627,27 @@ async def chart(ctx, ticker: str):
         
         merged_supply = merge_zones(supply_zones)
         merged_demand = merge_zones(demand_zones)
+
+        # =========================
+        # DEMAND ZONE UPGRADE (ABSORPTION CONFLUENCE)
+        # =========================
+        
+        demand_score = 0
+        
+        if merged_demand:
+            demand_score = 1
+        
+            if absorption_signal == "Bullish Absorption":
+                demand_score += 2
+        
+            if volume_control == "Buyer Dominant":
+                demand_score += 1
+        
+            demand_mid = (merged_demand[0][0] + merged_demand[0][1]) / 2
+            price_distance = abs(last_price - demand_mid) / last_price
+        
+            if price_distance < 0.05:
+                demand_score += 1
 
         # =============================
         # FORMAT ZONE
