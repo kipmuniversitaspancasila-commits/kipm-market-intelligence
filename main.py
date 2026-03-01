@@ -46,7 +46,14 @@ def calculate_stochastic(df, k_period=8, d_period=3, smooth=3):
     d = k_smooth.rolling(window=d_period).mean()
     return k_smooth, d
 
-    
+# =========================
+# EMA CALCULATION
+# =========================
+
+df['EMA21'] = df['Close'].ewm(span=21, adjust=False).mean()
+df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
+df['EMA200'] = df['Close'].ewm(span=200, adjust=False).mean()
+
 # ===============================
 # MERGE ZONES (INI YANG HILANG)
 # ===============================
