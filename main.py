@@ -1175,14 +1175,14 @@ async def chart(ctx, ticker: str):
 
         caption += (
         "╔═══════════════╗\n"
-        "║      MARKET REPORT ║\n"
-        "╚═══════════════╝\n\n"
+        "║      MARKET REPORT        ║\n"
+        "╚═══════════════╝\n"
         
         "📚 FUNDAMENTAL SNAPSHOT\n"
         f"PBV        : {pbv_text}\n"
         f"Equity     : {book_value_text}\n"
         
-        "\n━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━\n"
         "🏦 SMART MONEY FLOW\n"
         
         "\n📊 Bandar\n"
@@ -1195,21 +1195,21 @@ async def chart(ctx, ticker: str):
         f"1W  → {format_net(f1_net)} @{price_tick(f1_avg):,}\n"
         f"1M  → {format_net(fM_net)} @{price_tick(fM_avg):,}\n"
         
-        "\n━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━\n"
         "⚙️ MARKET MOMENTUM\n"
         f"RSI               : {rsi_now:.2f}\n"
         f"Stochastic : {stoch_now:.2f}\n"
         f"Volume       : {volume_view}\n"
         
-        "\n━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━\n"
         "🎯 TRADE EXECUTION PLAN\n"
-        f"Last Price : {price_tick(last_price):,}\n"
+        f"Last Price  : {price_tick(last_price):,}\n"
         f"Entry Zone : {entry_low:,} - {entry_high:,}\n"
         f"Target 1        : {target1}\n"
         f"Target 2       : {target2}\n"
         f"Invalid          : {invalidation}\n"
         
-        "\n━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━\n"
         "🧠 MARKET INSIGHT\n"
         f"{volume_view}\n"
         f"{structure_view}\n"
