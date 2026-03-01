@@ -823,7 +823,7 @@ async def chart(ctx, ticker: str):
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
         
-        await ctx.send(file=discord.File(file_path))
+        
         
         caption += (
             f"💰 Last Price : {price_tick(last_price):,}\n\n"
@@ -839,6 +839,8 @@ async def chart(ctx, ticker: str):
             "══════════════════\n"
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
+            "══════════════════\n"
+            f"\nWeekly Bias : {weekly_bias}\n"
 
             "══════════════════\n"
             "📚 FUNDAMENTAL\n"
@@ -873,7 +875,6 @@ async def chart(ctx, ticker: str):
             "🎯 TRADE PLAN\n\n"
         
             f"Bias : {bias}\n"
-            f"Confidence : {probability}%\n\n"
         
             f"📌 Entry : {entry_low} - {entry_high}\n"
             f"🎯 Target 1 : {target1}\n"
@@ -885,7 +886,13 @@ async def chart(ctx, ticker: str):
             "══════════════════\n"
         )
 
-        await ctx.send(caption)
+        if file_path:
+            await ctx.send(
+                file=discord.File(file_path),
+                content=caption
+            )
+        else:
+            await ctx.send(caption)
 
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
