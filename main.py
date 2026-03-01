@@ -629,16 +629,19 @@ async def chart(ctx, ticker: str):
         merged_demand = merge_zones(demand_zones)
 
         # =========================
-        # DEMAND ZONE UPGRADE (ABSORPTION CONFLUENCE)
+        # DEMAND ZONE UPGRADE
         # =========================
         
         demand_score = 0
+        demand_quality = "No Demand"
         
         if merged_demand:
             demand_score = 1
+            demand_quality = "Base Demand"
         
             if absorption_signal == "Bullish Absorption":
                 demand_score += 2
+                demand_quality = "Absorption Confirmed"
         
             if volume_control == "Buyer Dominant":
                 demand_score += 1
@@ -978,9 +981,10 @@ async def chart(ctx, ticker: str):
             f"🎯 Target 1 : {target1}\n"
             f"🎯 Target 2 : {target2}\n"
             f"🛑 Invalidation : {invalidation}\n"
+            f"📥 Demand Quality : {demand_quality} (Score {demand_score})\n"
             "══════════════════\n"
             f"\nWeekly Bias : {weekly_bias}\n"
-            f"\nStructure Quality : {plan_note}"
+            f"\nStructure Quality : {plan_note}\n"
             f"📐 Swing Quality : {swing_quality}\n"
             f"📊 Status : {swing_status}\n"
             f"🧠 Insight : {quality_note}\n"
