@@ -518,6 +518,36 @@ async def chart(ctx, ticker: str):
         volume_text = f"📊 Volume Control : {volume_control}"
 
         # =========================
+        # EFFORT VS RESULT
+        # =========================
+        
+        evr_signal = "Neutral"
+        
+        avg_range = (df["High"] - df["Low"]).rolling(20).mean().iloc[-1]
+        avg_volume = df["Volume"].rolling(20).mean().iloc[-1]
+        
+        last_range = df["High"].iloc[-1] - df["Low"].iloc[-1]
+        last_volume = df["Volume"].iloc[-1]
+        
+        if not pd.isna(avg_range) and not pd.isna(avg_volume):
+        
+            high_effort = last_volume > avg_volume * 1.5
+            low_result = last_range < avg_range * 0.7
+            high_result = last_range > avg_range * 1.3
+        
+            if high_effort and low_result:
+                evr_signal = "Absorption / Hidden Positioning"
+        
+            elif not high_effort and high_result:
+                evr_signal = "Imbalance / Easy Move"
+        
+            elif high_effort and high_result:
+                evr_signal = "Strong Expansion"
+        
+            else:
+                evr_signal = "Balanced"
+
+        # =========================
         # ALL TIME HIGH / LOW
         # =========================
         all_time_high = price_tick(df_full["High"].max())
@@ -869,6 +899,12 @@ async def chart(ctx, ticker: str):
 
             if false_breakout_signal != "None":
                 plan_note += f" | ⚠️ {false_breakout_signal}"
+
+            if evr_signal == "Absorption / Hidden Positioning":
+                plan_note += " | Volume absorption detected"
+            
+            elif evr_signal == "Imbalance / Easy Move":
+                plan_note += " | Momentum expansion phase"
         
         # =========================
         # SWING QUALITY VALIDATOR
@@ -1002,6 +1038,7 @@ async def chart(ctx, ticker: str):
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
             f"{absorption_text}\n"
             f"{volume_text}\n"
+            f"⚖️ Effort vs Result : {evr_signal}\n"
             "══════════════════\n"
             "📚 FUNDAMENTAL\n"
             f"PBV : {pbv_text}\n"
