@@ -261,7 +261,14 @@ async def chart(ctx, ticker: str):
 
         await ctx.send(f"📥 {symbol}")
         
+        # =========================
+        # MULTI TIMEFRAME DATA
+        # =========================
         
+        df_weekly = yf.download(symbol, period="max", interval="1wk").dropna()
+        df_daily = yf.download(symbol, period="max", interval="1d").dropna()
+        df_1h = yf.download(symbol, period="6mo", interval="1h").dropna()
+
         # =========================
         # DOWNLOAD DATA
         # =========================
