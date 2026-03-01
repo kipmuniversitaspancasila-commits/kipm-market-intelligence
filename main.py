@@ -46,14 +46,6 @@ def calculate_stochastic(df, k_period=8, d_period=3, smooth=3):
     d = k_smooth.rolling(window=d_period).mean()
     return k_smooth, d
 
-# =========================
-# EMA CALCULATION
-# =========================
-
-df['EMA21'] = df['Close'].ewm(span=21, adjust=False).mean()
-df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
-df['EMA200'] = df['Close'].ewm(span=200, adjust=False).mean()
-
 # ===============================
 # MERGE ZONES (INI YANG HILANG)
 # ===============================
@@ -163,7 +155,7 @@ def detect_liquidity_sweep(df):
 
 
 # ===============================
-# VOLUME SPIKE (SEBELUMNYA ERROR)
+# VOLUME SPIKE 
 # ===============================
 def detect_volume_spike(df):
     avg = df["Volume"].rolling(20).mean().iloc[-1]
@@ -507,6 +499,14 @@ async def chart(ctx, ticker: str):
             close_series = close_series.iloc[:, 0]
         
         last_price = price_tick(close_series.iloc[-1])
+
+        # =========================
+        # EMA CALCULATION (LETakkan DI SINI)
+        # =========================
+        
+        df["EMA21"] = df["Close"].ewm(span=21, adjust=False).mean()
+        df["EMA50"] = df["Close"].ewm(span=50, adjust=False).mean()
+        df["EMA200"] = df["Close"].ewm(span=200, adjust=False).mean()
 
         # =========================
         # ABSORPTION CONTEXT
@@ -1005,7 +1005,18 @@ async def chart(ctx, ticker: str):
         # 1 = volume
         # 2 = rsi
         # 3 = stoch
+        # =========================
+        # LAST PRICE LINE
+        # =========================
         
+        main_axes[0].text(
+            df.index[-1],
+            last_price,
+            f"  {last_price}",
+            color="gray",
+            fontsize=8,
+            verticalalignment="bottom"
+        )
         # REMOVE GRID
         for ax in main_axes:
             ax.grid(False)
@@ -1040,7 +1051,15 @@ async def chart(ctx, ticker: str):
         fig.savefig(file_path, bbox_inches="tight")
         plt.close(fig)
 
-
+        # =========================
+        # EMA ADDPLOTS
+        # =========================
+        
+        ema21_plot = mpf.make_addplot(df["EMA21"], color="gold", width=1)
+        ema50_plot = mpf.make_addplot(df["EMA50"], color="green", width=1)
+        ema200_plot = mpf.make_addplot(df["EMA200"], color="red", width=1)
+        
+        apds.extend([ema21_plot, ema50_plot, ema200_plot])
         # =========================
         # STRUCTURED INSIGHT ENGINE
         # =========================
