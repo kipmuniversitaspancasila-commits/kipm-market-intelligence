@@ -700,20 +700,18 @@ async def chart(ctx, ticker: str):
             f"🟢 R2 : {resistance2}\n\n"
         
             f"🔴 S1 : {support1}\n"
-            f"🔴 S2 : {support2}\n\n"
-        
+            f"🔴 S2 : {support2}\n"
+            "══════════════════\n"
             f"📦 Supply : {supply1} | {supply2}\n"
-            f"📥 Demand : {demand1} | {demand2}\n\n"
-            
-            f"Market Context : {market_context}\n\n"
-        
+            f"📥 Demand : {demand1} | {demand2}\n"
+            "══════════════════\n"
             f"📈 RSI : {rsi_now:.2f}\n"
             f"📊 Stochastic 8,3,3 : {stoch_now:.2f}\n"
 
             "══════════════════\n"
             "📚 FUNDAMENTAL\n"
             f"PBV : {pbv_text}\n"
-            f"Equity / Share : {book_value_text}\n\n"
+            f"Equity / Share : {book_value_text}\n"
         
             "══════════════════\n"
             "📊 BANDARMOLOGY\n"
@@ -736,7 +734,7 @@ async def chart(ctx, ticker: str):
             f"// Net : {format_value(f1_net)} ({f1_status}) Avg : {int(f1_avg)}\n"
         
             f"Foreign 1M // Buy : {format_value(fM_buy)} / Sell : {format_value(fM_sell)} "
-            f"// Net : {format_value(fM_net)} ({fM_status}) Avg : {int(fM_avg)}\n\n"
+            f"// Net : {format_value(fM_net)} ({fM_status}) Avg : {int(fM_avg)}\n"
         
             "══════════════════\n"
             "🎯 TRADE PLAN\n\n"
