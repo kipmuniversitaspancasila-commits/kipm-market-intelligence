@@ -939,7 +939,7 @@ async def chart(ctx, ticker: str):
         # =========================
         # EMA (PRICE PANEL)
         # =========================
-        ema21_plot = mpf.make_addplot(df["EMA21"], color="gold", width=1)
+        ema21_plot = mpf.make_addplot(df["EMA21"], color="#a700ff", width=1)
         ema50_plot = mpf.make_addplot(df["EMA50"], color="green", width=1)
         ema200_plot = mpf.make_addplot(df["EMA200"], color="red", width=1.2)
         
