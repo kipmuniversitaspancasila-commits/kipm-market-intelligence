@@ -1179,8 +1179,8 @@ async def chart(ctx, ticker: str):
         mid_line = f"║{title.center(header_width)}║"
         caption += (
             f"{mid_line}\n"
-
-        
+            
+        "━━━━━━━━━━━━━━━━━━\n"
         "📚 FUNDAMENTAL\n"
         f"PBV        : {pbv_text}\n"
         f"Equity     : {book_value_text}\n"
