@@ -1053,7 +1053,7 @@ async def chart(ctx, ticker: str):
                 )
             )
         
-        ema_box(ema21_last, ema21_last, "gold")
+        ema_box(ema21_last, ema21_last, "#a700ff")
         ema_box(ema50_last, ema50_last, "green")
         ema_box(ema200_last, ema200_last, "red")
 
@@ -1113,7 +1113,7 @@ async def chart(ctx, ticker: str):
         # EMA ADDPLOTS
         # =========================
         
-        ema21_plot = mpf.make_addplot(df["EMA21"], color="gold", width=1)
+        ema21_plot = mpf.make_addplot(df["EMA21"], color="#a700ff", width=1)
         ema50_plot = mpf.make_addplot(df["EMA50"], color="green", width=1)
         ema200_plot = mpf.make_addplot(df["EMA200"], color="red", width=1)
         
