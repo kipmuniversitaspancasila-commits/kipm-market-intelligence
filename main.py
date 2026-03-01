@@ -862,17 +862,28 @@ async def chart(ctx, ticker: str):
         
             # === TARGET LOGIC ===
         
+            # TARGET 1
             if merged_supply:
                 target1 = price_tick(merged_supply[0][0])
             elif resistance1 != "N/A":
                 target1 = int(resistance1.split(" - ")[0].replace(",", ""))
             else:
-                target1 = "N/A"
-        
-            if weekly_bias == "Bullish Macro" and resistance2 != "N/A":
+                target1 = all_time_high
+            
+            # TARGET 2
+            if len(merged_supply) > 1:
+                target2 = price_tick(merged_supply[1][0])
+            
+            elif resistance2 != "N/A":
                 target2 = int(resistance2.split(" - ")[0].replace(",", ""))
+            
+            elif target1 != "N/A" and invalidation != "N/A":
+                # fallback: 2R projection
+                risk = entry_low - invalidation
+                target2 = entry_low + (risk * 2)
+            
             else:
-                target2 = "N/A"
+                target2 = all_time_high
         
             # =========================
             # DEMAND SCORE INTEGRATION
