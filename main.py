@@ -1175,17 +1175,17 @@ async def chart(ctx, ticker: str):
 
         caption += (
         "╔═══════════════╗\n"
-        "║      MARKET REPORT        ║\n"
+        "║       MARKET REPORT       ║\n"
         "╚═══════════════╝\n"
         
-        "📚 FUNDAMENTAL SNAPSHOT\n"
+        "📚 FUNDAMENTAL\n"
         f"PBV        : {pbv_text}\n"
         f"Equity     : {book_value_text}\n"
         
         "━━━━━━━━━━━━━━━━━━\n"
         "🏦 SMART MONEY FLOW\n"
         
-        "\n📊 Bandar\n"
+        "\n📊 BDM accum-distri\n"
         f"3D  → {format_net(b3_net)} @{price_tick(b3_avg):,}\n"
         f"1W  → {format_net(b1_net)} @{price_tick(b1_avg):,}\n"
         f"1M  → {format_net(bM_net)} @{price_tick(bM_avg):,}\n"
