@@ -1175,7 +1175,7 @@ async def chart(ctx, ticker: str):
 
         caption += (
         "╔═══════════════╗\n"
-        "║ MARKET REPORT ║\n"
+        "║      MARKET REPORT ║\n"
         "╚═══════════════╝\n\n"
         
         "📚 FUNDAMENTAL SNAPSHOT\n"
@@ -1197,7 +1197,7 @@ async def chart(ctx, ticker: str):
         
         "\n━━━━━━━━━━━━━━━━━━\n"
         "⚙️ MARKET MOMENTUM\n"
-        f"RSI            : {rsi_now:.2f}\n"
+        f"RSI               : {rsi_now:.2f}\n"
         f"Stochastic : {stoch_now:.2f}\n"
         f"Volume       : {volume_view}\n"
         
@@ -1205,9 +1205,9 @@ async def chart(ctx, ticker: str):
         "🎯 TRADE EXECUTION PLAN\n"
         f"Last Price : {price_tick(last_price):,}\n"
         f"Entry Zone : {entry_low:,} - {entry_high:,}\n"
-        f"Target 1   : {target1}\n"
-        f"Target 2   : {target2}\n"
-        f"Invalid     : {invalidation}\n"
+        f"Target 1        : {target1}\n"
+        f"Target 2       : {target2}\n"
+        f"Invalid          : {invalidation}\n"
         
         "\n━━━━━━━━━━━━━━━━━━\n"
         "🧠 MARKET INSIGHT\n"
